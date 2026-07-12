@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>⚔️ Hücre Savaşı - Online</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, #0f0f2a 0%, #060612 100%);
+        }
+
+        #ui { position: fixed; z-index: 10; pointer-events: none; }
+        #scoreTop { top: 15px; left: 15px; color: #e2e8f0; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        #scoreTop .sc { font-size: 2rem; font-weight: 800; color: #4ecdc4; }
+        #scoreTop .lb { font-size: 0.8rem; color: #a0aec0; }
+        .stat-row { display: flex; gap: 20px; margin-top: 5px; }
+        .stat-row span { font-size: 0.85rem; color: #a0aec0; }
+        .stat-row span b { color: #e2e8f0; }
+
+        #lbPanel {
+            top: 15px; right: 15px;
+            background: rgba(10,10,26,0.85);
+            border: 1px solid rgba(78,205,196,0.15);
+            border-radius: 12px;
+            padding: 12px 14px;
+            min-width: 160px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            pointer-events: auto;
+        }
+        #lbPanel h3 { color: #4ecdc4; font-size: 0.75rem; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .lb-e { display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.75rem; color: #e2e8f0; }
+        .lb-e .n { flex: 1; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-e .s { color: #4ecdc4; font-weight: 600; }
+        .lb-e.me { background: rgba(78,205,196,0.1); border-radius: 3px; }
+
+        #bottomBar {
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #bottomBar button {
+            padding: 8px 16px;
+            border: 2px solid rgba(78,205,196,0.25);
+            border-radius: 20px;
+            background: rgba(10,10,26,0.8);
+            color: #e2e8f0;
+            font-size: 0.78rem;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: all 0.2s;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            touch-action: manipulation;
+        }
+        #bottomBar button:hover { border-color: #4ecdc4; background: rgba(78,205,196,0.12); }
+        #bottomBar button.primary { background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; border-color: transparent; }
+        #bottomBar button.primary:hover { box-shadow: 0 3px 15px rgba(78,205,196,0.3); }
+        #bottomBar button.naruto { border-color: #ff6b35; color: #ff6b35; }
+        #bottomBar button.naruto:hover { background: rgba(255,107,53,0.15); }
+
+        .hint {
+            position: fixed;
+            bottom: 62px; left: 50%; transform: translateX(-50%);
+            color: rgba(160,174,192,0.3);
+            font-size: 0.7rem;
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed; top:0;left:0;width:100%;height:100%;
+            background: rgba(10,10,26,0.92);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .modal.active { display: flex; }
+        .modal-box {
+            background: linear-gradient(135deg,#1a1a3e,#0f0c29);
+            border: 2px solid rgba(78,205,196,0.3);
+            border-radius: 18px;
+            padding: 30px;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(78,205,196,0.08);
+            animation: pop 0.3s ease;
+        }
+        @keyframes pop { from { transform:scale(0.9);opacity:0; } to { transform:scale(1);opacity:1; } }
+        .modal-box h2 { color: #4ecdc4; font-size: 1.5rem; margin-bottom: 15px; }
+        .modal-box p { color: #a0aec0; font-size: 0.9rem; margin-bottom: 15px; }
+        .modal-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(78,205,196,0.25);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.4);
+            color: #e2e8f0;
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: #4ecdc4; }
+        .modal-box button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 4px;
+            transition: all 0.2s;
+        }
+        .modal-box .btn-p { background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; }
+        .modal-box .btn-p:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(78,205,196,0.3); }
+        .modal-box .btn-s { background: rgba(255,255,255,0.06); color: #e2e8f0; border: 1px solid rgba(78,205,196,0.2); }
+        .modal-box .btn-s:hover { background: rgba(78,205,196,0.1); }
+        .room-code { font-size: 2rem; font-weight: 800; color: #f6d365; letter-spacing: 4px; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 10px; display: inline-block; margin: 10px 0; }
+        .sep { border-top: 1px solid rgba(78,205,196,0.1); margin: 15px 0; padding-top: 15px; }
+
+        /* Game over */
+        #gameOverBanner {
+            position: fixed; top:50%;left:50%;transform:translate(-50%,-50%);
+            z-index: 30;
+            background: rgba(10,10,26,0.95);
+            border: 3px solid #fc466b;
+            border-radius: 20px;
+            padding: 35px 40px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            min-width: 300px;
+            box-shadow: 0 0 60px rgba(252,70,107,0.15);
+            pointer-events: auto;
+        }
+        #gameOverBanner h2 { font-size: 2rem; background: linear-gradient(135deg,#fc466b,#3f5efb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+        #gameOverBanner p { color: #a0aec0; margin-bottom: 10px; }
+        #gameOverBanner .big { font-size: 3rem; font-weight: 800; color: #4ecdc4; }
+        #gameOverBanner button { padding: 12px 35px; border: none; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; margin: 5px; transition: all 0.2s; }
+        #gameOverBanner button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(78,205,196,0.3); }
+
+        /* Skin panel */
+        #skinPanel {
+            position: fixed; z-index: 20;
+            bottom: 65px; left: 50%; transform: translateX(-50%);
+            display: none;
+            gap: 12px;
+            background: rgba(10,10,26,0.92);
+            border: 1px solid rgba(78,205,196,0.15);
+            border-radius: 16px;
+            padding: 12px 18px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            pointer-events: auto;
+        }
+        #skinPanel.open { display: flex; }
+        .sk-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(78,205,196,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            background: rgba(255,255,255,0.05);
+            transition: all 0.2s;
+        }
+        .sk-btn:hover { border-color: #4ecdc4; transform: scale(1.1); }
+        .sk-btn.active { border-color: #4ecdc4; box-shadow: 0 0 15px rgba(78,205,196,0.3); }
+        .sk-btn .lbl { display: none; }
+
+        .status-badge {
+            position: fixed; top: 65px; right: 15px;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(10,10,26,0.7);
+            color: #a0aec0;
+            z-index: 10;
+            pointer-events: none;
+            border: 1px solid rgba(78,205,196,0.1);
+        }
+        .status-badge.online { border-color: #4ecdc4; color: #4ecdc4; }
+
+        @media (max-width:600px) {
+            #lbPanel { min-width: 120px; padding: 8px 10px; }
+            #lbPanel h3 { font-size: 0.65rem; }
+            .lb-e { font-size: 0.65rem; }
+            #scoreTop .sc { font-size: 1.4rem; }
+            #bottomBar button { padding: 6px 12px; font-size: 0.7rem; }
+            .modal-box { padding: 20px; }
+            #gameOverBanner { padding: 25px; min-width: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+    <div id="scoreTop">
+        <div class="lb">PUAN</div>
+        <div class="sc" id="scoreDisplay">0</div>
+        <div class="stat-row">
+            <span>📊 <b id="sizeDisplay">20</b></span>
+            <span>⚔️ <b id="killDisplay">0</b></span>
+            <span>🧩 <b id="pieceDisplay">1</b></span>
+        </div>
+    </div>
+
+    <div id="lbPanel">
+        <h3>🏆 Sıralama</h3>
+        <div id="lbEntries"></div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">💻 Tek Oyunculu</div>
+
+    <div id="bottomBar">
+        <button id="btnOnline">🌐 Online</button>
+        <button id="btnSkin">🎨 Skin</button>
+        <button id="btnSong">🎵 Şarkı</button>
+        <button id="btnRestart" class="primary">↻ Yeniden Başlat</button>
+    </div>
+
+    <div id="skinPanel">
+        <div class="sk-btn active" data-skin="default" style="background:linear-gradient(135deg,#4ecdc4,#45b7d1)">🐍</div>
+        <div class="sk-btn" data-skin="glow" style="background:linear-gradient(135deg,#f6d365,#fda085);box-shadow:0 0 12px #f6d365">✨</div>
+        <div class="sk-btn" data-skin="naruto" style="background:radial-gradient(circle at 50% 50%,#ff6b35,#cc3300);box-shadow:0 0 12px #ff6b35">🍥</div>
+    </div>
+</div>
+
+<div id="gameOverBanner">
+    <h2>💀 YOK EDİLDİN</h2>
+    <p>Bir hücre seni yuttu!</p>
+    <div class="big" id="finalScore">0</div>
+    <p style="font-size:0.85rem">Final Skorun</p>
+    <button id="btnPlayAgain">Tekrar Oyna</button>
+</div>
+
+<!-- Online Modal -->
+<div class="modal active" id="onlineModal">
+    <div class="modal-box">
+        <h2>🌐 Online Oyun</h2>
+        <p>Arkadaşlarınla oynamak için oda oluştur veya mevcut odaya katıl.</p>
+        <input type="text" id="userNameInput" placeholder="Kullanıcı adın..." maxlength="15" autocomplete="off">
+        <div class="sep"></div>
+        <button class="btn-p" id="btnCreateRoom">🎮 Oda Oluştur</button>
+        <div style="margin:10px 0;color:#718096;font-size:0.85rem">veya</div>
+        <input type="text" id="roomCodeInput" placeholder="Oda kodu..." maxlength="6" style="text-transform:uppercase;letter-spacing:3px;font-weight:700">
+        <button class="btn-s" id="btnJoinRoom">🔗 Odaya Katıl</button>
+        <div class="sep"></div>
+        <button class="btn-s" id="btnPlayOffline">💻 Tek Oyunculu Oyna</button>
+    </div>
+</div>
+
+<!-- Şarkı Modal -->
+<div class="modal" id="songModal">
+    <div class="modal-box">
+        <h2>🎵 Şarkı Seç</h2>
+        <p>Beğendiğin şarkıyı seç, kısa bir bölüm çalsın.</p>
+        <div id="songList" style="display:flex;flex-direction:column;gap:8px;margin:15px 0">
+            <button class="btn-p" data-song="epic" style="width:100%">⚔️ Epik Savaş</button>
+            <button class="btn-p" data-song="naruto" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300)">🍥 Naruto - Main Theme</button>
+            <button class="btn-p" data-song="retro" style="width:100%;background:linear-gradient(135deg,#00ff88,#00ccff)">🕹️ Retro Oyun</button>
+            <button class="btn-p" data-song="piano" style="width:100%;background:linear-gradient(135deg,#a855f7,#7c3aed)">🎹 Piyano</button>
+            <button class="btn-p" data-song="turkish" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316)">🇹🇷 Türkçe Pop</button>
+        </div>
+        <button class="btn-s" id="btnCloseSong" style="width:100%">Kapat</button>
+    </div>
+</div>
+
+<div class="hint">🖱️ Fare ile yönlendir • 🟡 Küçükleri ye • ⚡ Dikenlerden kaç • 🟠 Büyüklerden kaç</div>
+
+<script>
+// ========== AYARLAR ==========
+const WORLD_SIZE = 4000;
+const FOOD_COUNT = 600;
+const BOT_COUNT = 5;
+const INITIAL_RADIUS = 25;
+const VIEWPORT_PADDING = 150;
+const SPIKE_COUNT = 5;
+const SPIKE_BASE_RADIUS = 40;
+const MIN_SPLIT_RADIUS = 15;
+const SPLIT_MERGE_TIME = 4000;
+
+let canvas = document.getElementById('gameCanvas');
+let ctx = canvas.getContext('2d');
+let W = window.innerWidth;
+let H = window.innerHeight;
+canvas.width = W;
+canvas.height = H;
+
+// ========== SES ==========
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+function playNote(freq, dur, type = 'sine', vol = 0.1, delay = 0) {
+    try {
+        initAudio();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = type; o.connect(g); g.connect(audioCtx.destination);
+        const t = audioCtx.currentTime + delay;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.start(t); o.stop(t + dur);
+    } catch(e) {}
+}
+
+const SONGS = {
+    epic: { name: '⚔️ Epik Savaş', notes: [392,523,659,784,659,523,392,330,392,523,659,784,1047], dur: [0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.5], type: 'sawtooth' },
+    naruto: { name: '🍥 Naruto', notes: [262,330,392,523,392,523,659,523,392,330,262,392,523,659,784,659,523,392], dur: [0.15,0.15,0.15,0.25,0.15,0.15,0.25,0.15,0.15,0.15,0.3,0.15,0.15,0.15,0.25,0.15,0.15,0.4], type: 'triangle' },
+    retro: { name: '🕹️ Retro', notes: [523,523,0,523,0,415,523,0,659,0,784,0,659,0,523,0], dur: [0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.1,0.15,0.1,0.15,0.1,0.15,0.1,0.2,0.3], type: 'square' },
+    piano: { name: '🎹 Piyano', notes: [262,330,392,523,659,784,1047,784,659,523,392,330,262], dur: [0.3,0.3,0.3,0.3,0.3,0.3,0.5,0.3,0.3,0.3,0.3,0.3,0.6], type: 'sine' },
+    turkish: { name: '🇹🇷 Türkçe', notes: [440,494,523,587,659,523,587,659,784,659,523,440,494,523,440], dur: [0.2,0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.2,0.2,0.4], type: 'triangle' }
+};
+
+function playSong(name) {
+    const song = SONGS[name];
+    if (!song) return;
+    let t = 0;
+    song.notes.forEach((freq, i) => {
+        if (freq > 0) playNote(freq, song.dur[i] || 0.2, song.type, 0.1, t);
+        t += (song.dur[i] || 0.2) + 0.02;
+    });
+}
+
+function playEatSound() {
+    playNote(500 + Math.random() * 200, 0.1, 'sine', 0.08);
+}
+function playDeathSound() {
+    [300,250,200,150].forEach((f,i) => playNote(f, 0.12, 'sawtooth', 0.12, i*0.08));
+}
+function playSplitSound() {
+    [400,300,200].forEach((f,i) => playNote(f, 0.1, 'triangle', 0.1, i*0.06));
+}
+function playKillSound() {
+    [600,800,1000].forEach((f,i) => playNote(f, 0.08, 'sine', 0.08, i*0.06));
+}
+
+// ========== OYUN DURUMU ==========
+let player = null;
+let bots = [];
+let foods = [];
+let spikes = [];
+let particles = [];
+let camera = { x: 0, y: 0 };
+let mouseX = W / 2, mouseY = H / 2;
+let gameRunning = true;
+let kills = 0;
+let totalFrames = 0;
+let skinName = 'default';
+let userName = 'Ben';
+let playerPieces = []; // split pieces
+let mergeTimers = [];
+
+// Online
+let peer = null;
+let connections = [];
+let isHost = false;
+let roomCode = '';
+let onlinePlayers = {}; // peerId -> {x,y,radius,name,skin,pieces:[]}
+let myPeerId = '';
+let lastStateSend = 0;
+
+// ========== SINIFLAR ==========
+class Cell {
+    constructor(x, y, radius, isPlayer = false) {
+        this.x = x; this.y = y; this.radius = radius;
+        this.isPlayer = isPlayer;
+        this.color = `hsl(${Math.random()*360}, 65%, 50%)`;
+        this.name = '';
+        this.vx = 0; this.vy = 0;
+        this.targetX = x; this.targetY = y;
+        this.alive = true;
+        this.skin = 'default';
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.splitGroup = isPlayer ? Date.now() : 0;
+    }
+    get mass() { return Math.PI * this.radius * this.radius; }
+    setMass(m) { this.radius = Math.sqrt(m / Math.PI); }
+    distTo(o) { return Math.sqrt((this.x-o.x)**2 + (this.y-o.y)**2); }
+    canEat(o) { return this.alive && o.alive && this.radius > o.radius * 1.15 && this.distTo(o) < this.radius; }
+
+    draw(ctx, cam) {
+        if (!this.alive) return;
+        const sx = this.x - cam.x, sy = this.y - cam.y;
+        if (sx+this.radius < -VIEWPORT_PADDING || sx-this.radius > W+VIEWPORT_PADDING ||
+            sy+this.radius < -VIEWPORT_PADDING || sy-this.radius > H+VIEWPORT_PADDING) return;
+
+        const sk = this.skin || 'default';
+
+        // Glow
+        if (sk === 'glow') {
+            ctx.save();
+            const g = ctx.createRadialGradient(sx,sy,0,sx,sy,this.radius*1.8);
+            g.addColorStop(0,'rgba(246,211,101,0.12)'); g.addColorStop(1,'transparent');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(sx,sy,this.radius*1.8,0,Math.PI*2); ctx.fill();
+            ctx.restore();
+        } else if (sk === 'naruto') {
+            ctx.save();
+            const g = ctx.createRadialGradient(sx,sy,0,sx,sy,this.radius*1.8);
+            g.addColorStop(0,'rgba(255,107,53,0.12)'); g.addColorStop(1,'transparent');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(sx,sy,this.radius*1.8,0,Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.save();
+        // Fill
+        if (sk === 'glow') {
+            const g = ctx.createRadialGradient(sx-this.radius*0.2,sy-this.radius*0.2,0,sx,sy,this.radius);
+            g.addColorStop(0,'#fff8e1'); g.addColorStop(0.4,'#f6d365'); g.addColorStop(0.8,'#fda085'); g.addColorStop(1,'#f97316');
+            ctx.fillStyle = g;
+        } else if (sk === 'naruto') {
+            const g = ctx.createRadialGradient(sx-this.radius*0.2,sy-this.radius*0.2,0,sx,sy,this.radius);
+            g.addColorStop(0,'#ff8c42'); g.addColorStop(0.5,'#e65100'); g.addColorStop(1,'#bf360c');
+            ctx.fillStyle = g;
+        } else {
+            ctx.fillStyle = this.color;
+        }
+        ctx.beginPath(); ctx.arc(sx,sy,this.radius,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = Math.max(2, this.radius*0.04);
+        ctx.stroke();
+
+        // Naruto özel
+        if (sk === 'naruto' && this.radius > 15) {
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.font = `${Math.max(10, this.radius*0.5)}px serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🍥', sx, sy - this.radius*0.05);
+            for (let i = 0; i < 3; i++) {
+                const a = totalFrames*0.04 + i*2.094;
+                ctx.fillStyle = 'rgba(255,0,0,0.4)';
+                ctx.beginPath(); ctx.arc(sx+Math.cos(a)*this.radius*0.35, sy+Math.sin(a)*this.radius*0.35, this.radius*0.07, 0, Math.PI*2);
+                ctx.fill();
+            }
+            if (this.radius > 25) {
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.font = `bold ${Math.max(7, this.radius*0.2)}px sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('NARUTO', sx, sy + this.radius*0.45);
+            }
+        }
+
+        // Glow özel
+        if (sk === 'glow') {
+            for (let i = 0; i < 4; i++) {
+                const a = totalFrames*0.03 + i*1.57;
+                const r = this.radius * (0.5 + Math.sin(totalFrames*0.04+i)*0.3);
+                ctx.fillStyle = `rgba(255,255,255,${0.2+Math.sin(totalFrames*0.06+i)*0.15})`;
+                ctx.beginPath(); ctx.arc(sx+Math.cos(a)*r, sy+Math.sin(a)*r, 1.5+Math.sin(totalFrames*0.08+i), 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // İsim
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(9, this.radius*0.3)}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 4;
+        ctx.fillText(this.name, sx, sy);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+}
+
+class Food {
+    constructor(x, y, r) {
+        this.x = x !== undefined ? x : Math.random() * WORLD_SIZE;
+        this.y = y !== undefined ? y : Math.random() * WORLD_SIZE;
+        this.radius = r || (5 + Math.random() * 5);
+        this.color = `hsl(${Math.random()*360}, 80%, 60%)`;
+    }
+    draw(ctx, cam) {
+        const sx = this.x - cam.x, sy = this.y - cam.y;
+        if (sx < -15 || sx > W+15 || sy < -15 || sy > H+15) return;
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color; ctx.shadowBlur = 5;
+        ctx.beginPath(); ctx.arc(sx,sy,this.radius,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+class Spike {
+    constructor(x, y) {
+        this.x = x; this.y = y;
+        this.radius = SPIKE_BASE_RADIUS + Math.random() * 15;
+        this.spikeLen = this.radius * 0.6;
+        this.angle = Math.random() * Math.PI * 2;
+        this.rotation = 0;
+        this.pulse = 0;
+    }
+    draw(ctx, cam) {
+        const sx = this.x - cam.x, sy = this.y - cam.y;
+        if (sx+this.radius < -50 || sx-this.radius > W+50 || sy+this.radius < -50 || sy-this.radius > H+50) return;
+
+        this.pulse += 0.03;
+        this.rotation += 0.005;
+        const pulseR = Math.sin(this.pulse) * 3;
+
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(this.rotation);
+
+        // Dış parlama
+        const g = ctx.createRadialGradient(0,0,0,0,0,this.radius+this.spikeLen+10);
+        g.addColorStop(0,'rgba(255,50,50,0.08)'); g.addColorStop(1,'transparent');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(0,0,this.radius+this.spikeLen+10,0,Math.PI*2); ctx.fill();
+
+        // Dikenler
+        const spikeCount = 12;
+        for (let i = 0; i < spikeCount; i++) {
+            const a = (Math.PI*2*i)/spikeCount;
+            ctx.rotate(0.001);
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a)*(this.radius-3+pulseR), Math.sin(a)*(this.radius-3+pulseR));
+            ctx.lineTo(Math.cos(a-0.15)*(this.radius+this.spikeLen+pulseR), Math.sin(a-0.15)*(this.radius+this.spikeLen+pulseR));
+            ctx.lineTo(Math.cos(a+0.15)*(this.radius+this.spikeLen+pulseR), Math.sin(a+0.15)*(this.radius+this.spikeLen+pulseR));
+            ctx.closePath();
+            ctx.fillStyle = `hsl(0, ${70+Math.sin(this.pulse+i)*15}%, ${40+Math.sin(this.pulse*0.7+i)*10}%)`;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(200,0,0,0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Merkez
+        const cg = ctx.createRadialGradient(0,0,0,0,0,this.radius+pulseR);
+        cg.addColorStop(0,'#ff4444'); cg.addColorStop(0.5,'#cc0000'); cg.addColorStop(1,'#660000');
+        ctx.fillStyle = cg;
+        ctx.beginPath(); ctx.arc(0,0,this.radius+pulseR,0,Math.PI*2); ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+class Particle {
+    constructor(x,y,color,size) {
+        this.x=x; this.y=y;
+        const a=Math.random()*Math.PI*2; const s=1+Math.random()*3;
+        this.vx=Math.cos(a)*s; this.vy=Math.sin(a)*s;
+        this.radius=size||(2+Math.random()*4);
+        this.color=color||'#4ecdc4';
+        this.life=1; this.decay=0.012+Math.random()*0.02;
+    }
+    update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.02; this.life-=this.decay; return this.life>0; }
+    draw(ctx,cam) {
+        if (this.life<=0) return;
+        ctx.save(); ctx.globalAlpha=this.life;
+        ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x-cam.x,this.y-cam.y,this.radius*this.life,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ========== OYUN MANTIĞI ==========
+function initGame() {
+    playerPieces = [];
+    mergeTimers = [];
+    const c = new Cell(WORLD_SIZE/2, WORLD_SIZE/2, INITIAL_RADIUS, true);
+    c.name = userName;
+    c.skin = skinName;
+    c.color = '#4ecdc4';
+    playerPieces.push(c);
+    player = c;
+    kills = 0;
+    particles = [];
+    gameRunning = true;
+
+    bots = [];
+    const names = ['Alpha','Beta','Gamma','Delta','Echo','Fox','Ghost','Hawk','Ice','Jade','King','Lion','Mist','Nova','Odin','Puma','Raven','Storm','Tiger','Venom','Wolf','Xeno','Zero'];
+    for (let i = 0; i < BOT_COUNT; i++) {
+        if (isHost || !peer) { // only spawn bots in offline or host mode
+            const b = new Cell(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, 15+Math.random()*18);
+            b.name = names[Math.floor(Math.random()*names.length)];
+            b.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)];
+            b.targetX = Math.random()*WORLD_SIZE; b.targetY = Math.random()*WORLD_SIZE;
+            bots.push(b);
+        }
+    }
+
+    // Dikenler (orta kısımda)
+    spikes = [];
+    const centerX = WORLD_SIZE/2, centerY = WORLD_SIZE/2;
+    for (let i = 0; i < SPIKE_COUNT; i++) {
+        const a = (Math.PI*2*i)/SPIKE_COUNT + Math.random()*0.5;
+        const dist = 100 + Math.random() * 200;
+        spikes.push(new Spike(centerX + Math.cos(a)*dist, centerY + Math.sin(a)*dist));
+    }
+
+    foods = [];
+    for (let i = 0; i < FOOD_COUNT; i++) foods.push(new Food());
+
+    document.getElementById('gameOverBanner').style.display = 'none';
+    updateUI();
+}
+
+function spawnFood() {
+    if (foods.length < FOOD_COUNT + 50) foods.push(new Food());
+}
+
+function splitPlayer() {
+    if (!gameRunning || playerPieces.length >= 8) return;
+    const newPieces = [];
+    for (const piece of playerPieces) {
+        if (!piece.alive || piece.radius < MIN_SPLIT_RADIUS * 2) { newPieces.push(piece); continue; }
+        const mass = piece.mass;
+        const halfMass = mass / 2;
+        const r1 = Math.sqrt(halfMass / Math.PI);
+        const r2 = r1;
+        const a = Math.random() * Math.PI * 2;
+        const dist = piece.radius + r1 + 5;
+        piece.radius = r1;
+        const p2 = new Cell(piece.x + Math.cos(a)*dist, piece.y + Math.sin(a)*dist, r2, true);
+        p2.name = userName;
+        p2.skin = skinName;
+        p2.color = piece.color;
+        p2.splitGroup = Date.now();
+        newPieces.push(piece, p2);
+        mergeTimers.push({ id: p2.splitGroup, time: Date.now() + SPLIT_MERGE_TIME });
+    }
+    playerPieces = newPieces;
+    player = playerPieces[0];
+    playSplitSound();
+    updateUI();
+}
+
+function hitSpike(cell) {
+    if (!cell.alive || cell.radius < MIN_SPLIT_RADIUS * 2) return;
+    const mass = cell.mass;
+    const count = Math.min(5, Math.floor(cell.radius / MIN_SPLIT_RADIUS));
+    const pieceMass = mass / count;
+    if (pieceMass < MIN_SPLIT_RADIUS * MIN_SPLIT_RADIUS * Math.PI) return;
+
+    const newPieces = [];
+    for (let i = 0; i < count; i++) {
+        const a = (Math.PI*2*i)/count + Math.random()*0.3;
+        const dist = cell.radius + 5;
+        const r = Math.sqrt(pieceMass / Math.PI);
+        const p = new Cell(cell.x + Math.cos(a)*dist, cell.y + Math.sin(a)*dist, Math.max(MIN_SPLIT_RADIUS, r), cell.isPlayer);
+        p.name = cell.name;
+        p.skin = cell.skin;
+        p.color = cell.color;
+        p.splitGroup = Date.now();
+        newPieces.push(p);
+    }
+    cell.alive = false;
+    createParticles(cell.x, cell.y, '#ff4444', 20);
+    playSplitSound();
+
+    if (cell.isPlayer) {
+        // Replace this piece with new pieces
+        const idx = playerPieces.indexOf(cell);
+        if (idx > -1) {
+            playerPieces.splice(idx, 1, ...newPieces);
+            newPieces.forEach(p => mergeTimers.push({ id: p.splitGroup, time: Date.now() + SPLIT_MERGE_TIME }));
+            player = playerPieces[0];
+        }
+    }
+}
+
+function checkMerge() {
+    const now = Date.now();
+    // Birleşme kontrolü
+    for (let i = mergeTimers.length - 1; i >= 0; i--) {
+        if (now > mergeTimers[i].time) {
+            // Birleştir
+            const groupId = mergeTimers[i].id;
+            const group = playerPieces.filter(p => p.splitGroup === groupId && p.alive);
+            if (group.length > 1) {
+                let totalMass = 0;
+                let cx = 0, cy = 0;
+                for (const p of group) { totalMass += p.mass; cx += p.x * p.mass; cy += p.y * p.mass; }
+                cx /= totalMass; cy /= totalMass;
+                const newR = Math.sqrt(totalMass / Math.PI);
+                group[0].x = cx; group[0].y = cy; group[0].radius = newR;
+                for (let j = 1; j < group.length; j++) {
+                    const idx = playerPieces.indexOf(group[j]);
+                    if (idx > -1) playerPieces.splice(idx, 1);
+                }
+                player = playerPieces[0];
+            }
+            mergeTimers.splice(i, 1);
+        }
+    }
+}
+
+function updateGame() {
+    if (!gameRunning || !player) return;
+    totalFrames++;
+
+    // Oyuncu hareketi (tüm parçalar)
+    for (const piece of playerPieces) {
+        if (!piece.alive) continue;
+        const dx = mouseX - W/2;
+        const dy = mouseY - H/2;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist > 5) {
+            const speed = Math.min(3.5, 2.2 + (1 - piece.radius/140) * 2);
+            piece.x += (dx/dist) * speed;
+            piece.y += (dy/dist) * speed;
+        }
+        // Sınırlar
+        piece.x = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.x));
+        piece.y = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.y));
+    }
+
+    const mainPiece = player;
+    camera.x = mainPiece.x - W/2;
+    camera.y = mainPiece.y - H/2;
+
+    // Yiyecek yeme (tüm parçalar)
+    for (const piece of playerPieces) {
+        if (!piece.alive) continue;
+        for (let i = foods.length-1; i >= 0; i--) {
+            const f = foods[i];
+            if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
+                piece.radius += f.radius * 0.04;
+                foods.splice(i,1);
+                spawnFood();
+            }
+        }
+    }
+
+    // Bot yiyecek yeme
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        for (let i = foods.length-1; i >= 0; i--) {
+            const f = foods[i];
+            if (Math.sqrt((bot.x-f.x)**2+(bot.y-f.y)**2) < bot.radius) {
+                bot.radius += f.radius * 0.03;
+                foods.splice(i,1);
+                spawnFood();
+            }
+        }
+    }
+
+    // Bot AI
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        const dx = bot.targetX - bot.x;
+        const dy = bot.targetY - bot.y;
+        const d = Math.sqrt(dx*dx+dy*dy);
+        if (d < 40) { bot.targetX = Math.random()*WORLD_SIZE; bot.targetY = Math.random()*WORLD_SIZE; }
+
+        // Yiyeceğe yönel
+        let nearF = null, nearD = Infinity;
+        for (const f of foods) {
+            const fd = Math.sqrt((bot.x-f.x)**2+(bot.y-f.y)**2);
+            if (fd < nearD) { nearD = fd; nearF = f; }
+        }
+        if (nearF && nearD < 350) { bot.targetX = nearF.x; bot.targetY = nearF.y; }
+
+        // Kaç/kovala
+        for (const other of bots) {
+            if (other === bot || !other.alive) continue;
+            const bd = bot.distTo(other);
+            if (bd < 200) {
+                if (other.radius > bot.radius*1.1) { bot.targetX = bot.x+(bot.x-other.x)*2; bot.targetY = bot.y+(bot.y-other.y)*2; }
+                else if (bot.radius > other.radius*1.15 && bd < 350) { bot.targetX = other.x; bot.targetY = other.y; }
+            }
+        }
+        // Oyuncudan kaç/kovala
+        for (const piece of playerPieces) {
+            if (!piece.alive) continue;
+            const pd = bot.distTo(piece);
+            if (pd < 250) {
+                if (piece.radius > bot.radius*1.1) { bot.targetX = bot.x+(bot.x-piece.x)*2; bot.targetY = bot.y+(bot.y-piece.y)*2; }
+                else if (bot.radius > piece.radius*1.15 && pd < 350) { bot.targetX = piece.x; bot.targetY = piece.y; }
+            }
+        }
+
+        const dx2 = bot.targetX - bot.x, dy2 = bot.targetY - bot.y;
+        const d2 = Math.sqrt(dx2*dx2+dy2*dy2);
+        if (d2 > 3) {
+            const s = Math.min(2.5, 1.5 + (1-bot.radius/120)*1.5);
+            bot.x += (dx2/d2)*s; bot.y += (dy2/d2)*s;
+        }
+        bot.x = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.x));
+        bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.y));
+    }
+
+    // Bot vs Bot
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        for (const other of bots) {
+            if (other === bot || !other.alive) continue;
+            if (bot.canEat(other)) {
+                bot.radius += other.radius*0.4;
+                other.alive = false;
+                createParticles(other.x,other.y,other.color,12);
+                setTimeout(() => { if (!other.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 4000);
+            }
+        }
+    }
+
+    // Oyuncu vs Bot (tüm parçalar)
+    for (const piece of playerPieces) {
+        if (!piece.alive) continue;
+        for (const bot of bots) {
+            if (!bot.alive) continue;
+            if (piece.canEat(bot)) {
+                piece.radius += bot.radius*0.4;
+                bot.alive = false;
+                kills++;
+                createParticles(bot.x,bot.y,bot.color,15);
+                playKillSound();
+                if (bot.skin === 'naruto') playSong('naruto');
+                setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 4000);
+            }
+            if (bot.canEat(piece)) {
+                bot.radius += piece.radius*0.4;
+                piece.alive = false;
+                createParticles(piece.x,piece.y,'#fc466b',15);
+                playDeathSound();
+                // Check if all pieces dead
+                if (playerPieces.every(p => !p.alive)) { gameOver(); return; }
+                player = playerPieces.find(p => p.alive);
+            }
+        }
+    }
+
+    // Diken çarpışması
+    for (const piece of playerPieces) {
+        if (!piece.alive) continue;
+        for (const spike of spikes) {
+            if (piece.distTo(spike) < piece.radius + spike.radius) {
+                hitSpike(piece);
+                // Diken yiyecek saçar
+                for (let i = 0; i < 8; i++) {
+                    const a = Math.random()*Math.PI*2;
+                    const dist = 30 + Math.random()*60;
+                    foods.push(new Food(spike.x+Math.cos(a)*dist, spike.y+Math.sin(a)*dist, 4+Math.random()*4));
+                }
+                createParticles(spike.x, spike.y, '#ff6b35', 15);
+                break;
+            }
+        }
+    }
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        for (const spike of spikes) {
+            if (bot.distTo(spike) < bot.radius + spike.radius) {
+                hitSpike(bot);
+                for (let i = 0; i < 5; i++) {
+                    const a = Math.random()*Math.PI*2;
+                    const dist = 20+Math.random()*40;
+                    foods.push(new Food(spike.x+Math.cos(a)*dist, spike.y+Math.sin(a)*dist, 3+Math.random()*3));
+                }
+                break;
+            }
+        }
+    }
+
+    // Bot büyüme sınırı
+    for (const bot of bots) { if (bot.radius > 70) bot.radius = 70; }
+
+    // Birleşme
+    checkMerge();
+
+    // Parçacıklar
+    particles = particles.filter(p => p.update());
+
+    // Skor
+    let totalRadius = 0;
+    for (const p of playerPieces) if (p.alive) totalRadius += p.radius;
+    const sc = Math.round(totalRadius * 2.5 + kills * 25);
+    document.getElementById('scoreDisplay').textContent = sc.toLocaleString('tr-TR');
+
+    updateUI();
+
+    // Online state gönder
+    if (peer && connections.length > 0) {
+        broadcastState();
+    }
+}
+
+function gameOver() {
+    gameRunning = false;
+    const sc = parseInt(document.getElementById('scoreDisplay').textContent.replace(/\./g,''));
+    document.getElementById('finalScore').textContent = sc.toLocaleString('tr-TR');
+    document.getElementById('gameOverBanner').style.display = 'block';
+    playDeathSound();
+}
+
+function createParticles(x,y,color,count=10) {
+    for (let i=0;i<count;i++) particles.push(new Particle(x,y,color));
+}
+
+function updateUI() {
+    let totalR = 0, pieceCount = 0;
+    for (const p of playerPieces) { if (p.alive) { totalR += p.radius; pieceCount++; } }
+    document.getElementById('sizeDisplay').textContent = Math.round(totalR);
+    document.getElementById('killDisplay').textContent = kills;
+    document.getElementById('pieceDisplay').textContent = pieceCount;
+    updateLeaderboard();
+}
+
+function updateLeaderboard() {
+    const entries = [];
+
+    // Oyuncu tüm parçaları
+    let playerScore = 0;
+    for (const p of playerPieces) if (p.alive) playerScore += p.radius;
+    entries.push({ name: `👤 ${userName}`, score: Math.round(playerScore * 2.5), isMe: true });
+
+    // Online oyuncular
+    for (const [id, op] of Object.entries(onlinePlayers)) {
+        if (op.alive !== false) {
+            entries.push({ name: op.name || id.slice(0,6), score: Math.round((op.totalRadius||op.radius||20) * 2.5), isMe: false });
+        }
+    }
+
+    // Botlar
+    for (const bot of bots) {
+        if (bot.alive) {
+            const emoji = bot.skin === 'naruto' ? '🍥' : bot.skin === 'glow' ? '✨' : '🔵';
+            entries.push({ name: `${emoji} ${bot.name}`, score: Math.round(bot.radius * 2.5), isMe: false });
+        }
+    }
+
+    entries.sort((a,b) => b.score - a.score);
+    const top = entries.slice(0, 10);
+    const el = document.getElementById('lbEntries');
+    el.innerHTML = top.map((e,i) => `
+        <div class="lb-e ${e.isMe?'me':''}">
+            <span style="color:#718096;min-width:18px">${i+1}</span>
+            <span class="n">${e.name}</span>
+            <span class="s">${e.score.toLocaleString('tr-TR')}</span>
+        </div>
+    `).join('');
+}
+
+// ========== ONLINE ==========
+function initOnline() {
+    if (peer) { peer.destroy(); peer = null; }
+    connections = [];
+    onlinePlayers = {};
+}
+
+function createRoom() {
+    initOnline();
+    const id = Math.random().toString(36).substring(2,8).toUpperCase();
+    peer = new Peer(id, { debug: 0 });
+    roomCode = id;
+    isHost = true;
+
+    peer.on('open', pid => {
+        myPeerId = pid;
+        document.getElementById('statusBadge').textContent = `🌐 Host: ${roomCode}`;
+        document.getElementById('statusBadge').classList.add('online');
+        document.getElementById('onlineModal').classList.remove('active');
+        document.getElementById('skinPanel').classList.remove('open');
+        initGame();
+        // Show room code
+        alert(`Oda oluşturuldu! Kod: ${roomCode}\nArkadaşların bu kodla katılabilir.`);
+    });
+
+    peer.on('connection', conn => {
+        conn.on('open', () => {
+            connections.push(conn);
+            conn.on('data', data => handleRemoteData(data, conn));
+            conn.on('close', () => {
+                connections = connections.filter(c => c !== conn);
+                delete onlinePlayers[conn.peer];
+            });
+        });
+    });
+}
+
+function joinRoom() {
+    const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if (!code || code.length < 4) { alert('Geçerli bir oda kodu girin.'); return; }
+    initOnline();
+    peer = new Peer(undefined, { debug: 0 });
+    isHost = false;
+    roomCode = code;
+
+    peer.on('open', pid => {
+        myPeerId = pid;
+        const conn = peer.connect(code);
+        conn.on('open', () => {
+            connections = [conn];
+            document.getElementById('statusBadge').textContent = `🌐 Odada: ${code}`;
+            document.getElementById('statusBadge').classList.add('online');
+            document.getElementById('onlineModal').classList.remove('active');
+            document.getElementById('skinPanel').classList.remove('open');
+            initGame();
+            // Send join info
+            conn.send({ type: 'join', name: userName, skin: skinName, peerId: pid });
+            conn.on('data', data => handleRemoteData(data, conn));
+            conn.on('close', () => {
+                connections = connections.filter(c => c !== conn);
+                document.getElementById('statusBadge').textContent = '💻 Bağlantı Koptu';
+                document.getElementById('statusBadge').classList.remove('online');
+            });
+        });
+        conn.on('error', () => { alert('Oda bulunamadı!'); peer.destroy(); });
+    });
+}
+
+function handleRemoteData(data, conn) {
+    if (data.type === 'join') {
+        onlinePlayers[data.peerId] = { name: data.name, skin: data.skin, x: WORLD_SIZE/2, y: WORLD_SIZE/2, radius: INITIAL_RADIUS, alive: true, totalRadius: INITIAL_RADIUS };
+        // Host sends existing players
+        if (isHost) {
+            conn.send({ type: 'players', players: Object.keys(onlinePlayers).map(id => ({ peerId: id, ...onlinePlayers[id] })) });
+        }
+        broadcastState();
+    } else if (data.type === 'players') {
+        // Client receives existing players from host
+        (data.players || []).forEach(p => { if (p.peerId !== myPeerId) onlinePlayers[p.peerId] = p; });
+    } else if (data.type === 'state') {
+        // Update remote player state
+        if (data.peerId && data.peerId !== myPeerId) {
+            if (!onlinePlayers[data.peerId]) onlinePlayers[data.peerId] = {};
+            onlinePlayers[data.peerId].x = data.x;
+            onlinePlayers[data.peerId].y = data.y;
+            onlinePlayers[data.peerId].radius = data.radius;
+            onlinePlayers[data.peerId].totalRadius = data.totalRadius;
+            onlinePlayers[data.peerId].alive = data.alive;
+            onlinePlayers[data.peerId].name = data.name;
+            onlinePlayers[data.peerId].skin = data.skin;
+        }
+    } else if (data.type === 'eat') {
+        playEatSound();
+    } else if (data.type === 'kill') {
+        playKillSound();
+    }
+}
+
+function broadcastState() {
+    let totalR = 0;
+    for (const p of playerPieces) if (p.alive) totalR += p.radius;
+    const main = playerPieces.find(p => p.alive) || playerPieces[0];
+    if (!main) return;
+    const state = {
+        type: 'state',
+        peerId: myPeerId,
+        x: main.x, y: main.y,
+        radius: main.radius,
+        totalRadius: totalR,
+        alive: main.alive,
+        name: userName,
+        skin: skinName
+    };
+    for (const conn of connections) {
+        try { conn.send(state); } catch(e) {}
+    }
+}
+
+// ========== ÇİZİM ==========
+function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(78,205,196,0.025)';
+    ctx.lineWidth = 1;
+    const gs = 60;
+    const sx = Math.floor(camera.x/gs)*gs, sy = Math.floor(camera.y/gs)*gs;
+    for (let x = sx; x < sx+W+gs; x+=gs) { ctx.beginPath(); ctx.moveTo(x-camera.x,0); ctx.lineTo(x-camera.x,H); ctx.stroke(); }
+    for (let y = sy; y < sy+H+gs; y+=gs) { ctx.beginPath(); ctx.moveTo(0,y-camera.y); ctx.lineTo(W,y-camera.y); ctx.stroke(); }
+
+    // Dünya sınırı
+    ctx.strokeStyle = 'rgba(255,50,50,0.2)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-camera.x, -camera.y, WORLD_SIZE, WORLD_SIZE);
+
+    // Yiyecekler
+    for (const f of foods) f.draw(ctx, camera);
+
+    // Dikenler
+    for (const s of spikes) s.draw(ctx, camera);
+
+    // Parçacıklar
+    for (const p of particles) p.draw(ctx, camera);
+
+    // Online oyuncular
+    for (const [id, op] of Object.entries(onlinePlayers)) {
+        if (!op.alive && op.alive !== undefined) continue;
+        // Basit çizim
+        const sx = (op.x||WORLD_SIZE/2) - camera.x;
+        const sy = (op.y||WORLD_SIZE/2) - camera.y;
+        const r = op.radius || 20;
+        if (sx+r < -50 || sx-r > W+50 || sy+r < -50 || sy-r > H+50) continue;
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth=2; ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(9, r*0.3)}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4;
+        ctx.fillText(op.name || id.slice(0,5), sx, sy);
+        ctx.shadowBlur = 0;
+    }
+
+    // Botlar
+    for (const bot of bots) bot.draw(ctx, camera);
+
+    // Oyuncu parçaları
+    for (const piece of playerPieces) {
+        if (piece.alive) piece.draw(ctx, camera);
+    }
+}
+
+function gameLoop() {
+    updateGame();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+// ========== OLAY DİNLEYİCİLER ==========
+canvas.addEventListener('mousemove', e => { mouseX=e.clientX; mouseY=e.clientY; });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.touches[0]; mouseX=t.clientX; mouseY=t.clientY; }, {passive:false});
+canvas.addEventListener('touchmove', e => { e.preventDefault(); const t=e.touches[0]; mouseX=t.clientX; mouseY=t.clientY; }, {passive:false});
+window.addEventListener('resize', () => { W=window.innerWidth; H=window.innerHeight; canvas.width=W; canvas.height=H; });
+
+// Skin seçimi
+document.querySelectorAll('.sk-btn').forEach(el => {
+    el.addEventListener('click', () => {
+        document.querySelectorAll('.sk-btn').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        skinName = el.dataset.skin;
+        for (const p of playerPieces) if (p.alive) p.skin = skinName;
+        if (skinName === 'naruto') playSong('naruto');
+        document.getElementById('skinPanel').classList.remove('open');
+    });
+});
+
+document.getElementById('btnSkin').addEventListener('click', () => {
+    document.getElementById('skinPanel').classList.toggle('open');
+    document.getElementById('songModal').classList.remove('active');
+});
+
+document.getElementById('btnSong').addEventListener('click', () => {
+    document.getElementById('songModal').classList.toggle('active');
+    document.getElementById('skinPanel').classList.remove('open');
+});
+
+document.querySelectorAll('#songList button').forEach(el => {
+    el.addEventListener('click', () => {
+        const song = el.dataset.song;
+        playSong(song);
+    });
+});
+
+document.getElementById('btnCloseSong').addEventListener('click', () => {
+    document.getElementById('songModal').classList.remove('active');
+});
+
+document.getElementById('btnRestart').addEventListener('click', () => {
+    if (isHost || !peer) { initGame(); }
+});
+document.getElementById('btnPlayAgain').addEventListener('click', () => {
+    document.getElementById('gameOverBanner').style.display = 'none';
+    if (isHost || !peer) { initGame(); }
+});
+
+// Online butonları
+document.getElementById('btnOnline').addEventListener('click', () => {
+    document.getElementById('onlineModal').classList.toggle('active');
+});
+document.getElementById('btnCreateRoom').addEventListener('click', () => {
+    userName = document.getElementById('userNameInput').value.trim() || 'Oyuncu';
+    createRoom();
+});
+document.getElementById('btnJoinRoom').addEventListener('click', () => {
+    userName = document.getElementById('userNameInput').value.trim() || 'Oyuncu';
+    joinRoom();
+});
+document.getElementById('btnPlayOffline').addEventListener('click', () => {
+    userName = document.getElementById('userNameInput').value.trim() || 'Oyuncu';
+    document.getElementById('onlineModal').classList.remove('active');
+    document.getElementById('statusBadge').textContent = '💻 Tek Oyunculu';
+    document.getElementById('statusBadge').classList.remove('online');
+    initGame();
+});
+
+// Boşluk ile bölünme
+document.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Space') { e.preventDefault(); splitPlayer(); }
+});
+
+// Canvas click
+canvas.addEventListener('click', () => { initAudio(); });
+
+// ========== BAŞLAT ==========
+// Enter tuşu ile online modal'dan hızlı başlatma
+document.getElementById('userNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); initGame(); }
+});
+document.getElementById('roomCodeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinRoom();
+});
+
+// Ön tanımlı oyuncu adı
+userName = 'Oyuncu' + Math.floor(Math.random()*1000);
+document.getElementById('userNameInput').value = userName;
+
+initGame();
+gameLoop();
+</script>
+</body>
+</html>
