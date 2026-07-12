@@ -240,6 +240,11 @@
         .sk-btn:hover { border-color: #4ecdc4; transform: scale(1.1); }
         .sk-btn.active { border-color: #4ecdc4; box-shadow: 0 0 15px rgba(78,205,196,0.3); }
         .sk-btn .lbl { display: none; }
+        .char-btn { display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:2px solid rgba(78,205,196,0.15);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;cursor:pointer;transition:all 0.2s;font-size:0.8rem;margin-bottom:4px;text-align:left }
+        .char-btn:hover { border-color:#4ecdc4;transform:translateY(-1px) }
+        .char-btn.active { border-color:#4ecdc4;background:rgba(78,205,196,0.1) }
+        .char-btn .cost { margin-left:auto;font-size:0.75rem;color:#f6d365 }
+        .char-btn .desc { font-size:0.65rem;color:#a0aec0;display:block;margin-top:2px }
 
         .status-badge {
             position: fixed; top: 65px; right: 15px;
@@ -278,6 +283,7 @@
             <span>📊 <b id="sizeDisplay">20</b></span>
             <span>⚔️ <b id="killDisplay">0</b></span>
             <span>🧩 <b id="pieceDisplay">1</b></span>
+            <span>💰 <b id="goldDisplay">0</b></span>
         </div>
     </div>
 
@@ -290,15 +296,16 @@
 
     <div id="bottomBar">
         <button id="btnOnline">🌐 Online</button>
-        <button id="btnSkin">🎨 Skin</button>
+        <button id="btnSkin">🎨 Karakter</button>
         <button id="btnSong">🎵 Şarkı</button>
         <button id="btnRestart" class="primary">↻ Yeniden Başlat</button>
     </div>
 
     <div id="skinPanel">
-        <div class="sk-btn active" data-skin="default" style="background:linear-gradient(135deg,#4ecdc4,#45b7d1)">🐍</div>
-        <div class="sk-btn" data-skin="glow" style="background:linear-gradient(135deg,#f6d365,#fda085);box-shadow:0 0 12px #f6d365">✨</div>
-        <div class="sk-btn" data-skin="naruto" style="background:radial-gradient(circle at 50% 50%,#ff6b35,#cc3300);box-shadow:0 0 12px #ff6b35">🍥</div>
+        <div style="color:#a0aec0;font-size:0.7rem;margin-bottom:8px;text-align:center">KARAKTER SEÇ</div>
+        <div id="charList"></div>
+        <div class="sep" style="margin:8px 0"></div>
+        <div id="charShop"></div>
     </div>
 </div>
 
@@ -307,6 +314,7 @@
     <p>Bir hücre seni yuttu!</p>
     <div class="big" id="finalScore">0</div>
     <p style="font-size:0.85rem">Final Skorun</p>
+    <p style="font-size:0.9rem;color:#f6d365;margin:5px 0">💰 +<span id="goldEarned">0</span> Altın</p>
     <button id="btnPlayAgain">Tekrar Oyna</button>
 </div>
 
@@ -323,7 +331,7 @@
         <button class="btn-s" id="btnJoinRoom">🔗 Odaya Katıl</button>
         <div class="sep"></div>
         <div style="margin-bottom:10px">
-            <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:8px">🎨 Skin Seç</div>
+            <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:8px">🎨 Skin Seç • Karakter: <span id="charNameOnline">🐍 Yılan</span></div>
             <div style="display:flex;gap:10px;justify-content:center">
                 <div class="sk-btn active" data-skin="default" style="width:50px;height:50px;border-radius:50%;border:3px solid rgba(78,205,196,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:linear-gradient(135deg,#4ecdc4,#45b7d1)">🐍</div>
                 <div class="sk-btn" data-skin="glow" style="width:50px;height:50px;border-radius:50%;border:3px solid rgba(78,205,196,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:linear-gradient(135deg,#f6d365,#fda085);box-shadow:0 0 8px #f6d365">✨</div>
@@ -372,7 +380,7 @@
 </div>
 
 <div id="staminaBar"><div class="fill" id="staminaFill"></div><div class="label">KOŞ</div></div>
-<div id="eCooldownBar">🔥 Katon · E</div>
+<div id="eCooldownBar">🔥 Yetenek · E</div>
 <div id="mergeCooldownBar">🌀 Birleş · R</div>
 
 <div class="hint">🖱️ Fare • ⬆️ Shift=Koş • 🔥 E=Katon • 🌀 R=Birleş • ⚡ Diken • 🕳️ Kara delik • Boşluk=Bölün</div>
@@ -594,6 +602,21 @@ let blackHoleNotification = false;
 let totalScore = 0;
 let userImage = null;
 let userImageLoaded = false;
+
+// ========== ALTIN & KARAKTER SİSTEMİ ==========
+let gold = 0;
+let ownedCharacters = ['default'];
+let selectedCharacter = 'default';
+let survivalFrames = 0;
+let abilityCooldown = 0;
+let octaneBoost = 0;
+
+const CHARACTERS = {
+    default: { name: '🐍 Yılan', cost: 0, desc: 'Klasik fireball atar', color: '#4ecdc4' },
+    garen: { name: '⚔️ Garen', cost: 500, desc: 'Pasif: kendiliğinden büyür. E: Adalet darbesi', color: '#f6d365' },
+    chogath: { name: '👹 Cho\'Gath', cost: 1000, desc: 'E: Canı senden az olanı yut, fazladan büyü', color: '#9c27b0' },
+    octane: { name: '⚡ Octane', cost: 1500, desc: 'E: %15 can harca, 3sn hızlan (iğne sesi)', color: '#ff1744' }
+};
 
 // ========== STAMİNA & JUTSU ==========
 let stamina = 100;
@@ -930,6 +953,8 @@ class Fireball {
 function initGame() {
     playerPieces = [];
     mergeTimers = [];
+    survivalFrames = 0;
+    octaneBoost = 0;
     const c = new Cell(WORLD_SIZE/2, WORLD_SIZE/2, INITIAL_RADIUS, true);
     c.name = userName;
     c.skin = skinName;
@@ -940,7 +965,7 @@ function initGame() {
     particles = [];
     fireballs = [];
     stamina = 100;
-    eCooldown = 0;
+    abilityCooldown = 0;
     mergeCooldown = 0;
     gameRunning = true;
 
@@ -992,7 +1017,11 @@ function splitPlayer() {
         const a = Math.random() * Math.PI * 2;
         const dist = piece.radius + r1 + 5;
         piece.radius = r1;
-        const p2 = new Cell(piece.x + Math.cos(a)*dist, piece.y + Math.sin(a)*dist, r2, true);
+        // Yeni parçayı aynı konumda oluştur, vx/vy ile akıcı ayrılsın
+        const p2 = new Cell(piece.x, piece.y, r2, true);
+        p2.splitTargetX = piece.x + Math.cos(a) * dist;
+        p2.splitTargetY = piece.y + Math.sin(a) * dist;
+        p2.splitProgress = 0;
         p2.name = userName;
         p2.skin = skinName;
         p2.color = piece.color;
@@ -1019,7 +1048,10 @@ function hitSpikeByScore(cell) {
         const a = (Math.PI*2*i)/pieceCount + Math.random()*0.4;
         const dist = cell.radius + 8;
         const r = Math.max(MIN_SPLIT_RADIUS, Math.sqrt(pieceMass / Math.PI));
-        const p = new Cell(cell.x + Math.cos(a)*dist, cell.y + Math.sin(a)*dist, r, cell.isPlayer);
+        const p = new Cell(cell.x, cell.y, r, cell.isPlayer);
+        p.splitTargetX = cell.x + Math.cos(a) * dist;
+        p.splitTargetY = cell.y + Math.sin(a) * dist;
+        p.splitProgress = 0;
         p.name = cell.name;
         p.skin = cell.skin;
         p.color = cell.color;
@@ -1072,25 +1104,70 @@ function updateGame() {
 
     // Oyuncu hareketi - Shift basılıysa stamina harca, hızlan
     const isSprinting = shiftHeld && stamina > 0 && gameRunning;
+    const octaneMult = octaneBoost > 0 ? 2.5 : 1;
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
+        // Akıcı bölünme: split hedefine doğru lerp
+        if (piece.splitTargetX !== undefined && piece.splitProgress < 1) {
+            piece.splitProgress = Math.min(1, piece.splitProgress + 0.08);
+            piece.x = piece.x + (piece.splitTargetX - piece.x) * 0.12;
+            piece.y = piece.y + (piece.splitTargetY - piece.y) * 0.12;
+            if (piece.splitProgress >= 0.99) {
+                piece.x = piece.splitTargetX;
+                piece.y = piece.splitTargetY;
+                delete piece.splitTargetX;
+                delete piece.splitTargetY;
+                delete piece.splitProgress;
+            }
+        }
         const dx = mouseX - W/2;
         const dy = mouseY - H/2;
         const dist = Math.sqrt(dx*dx+dy*dy);
         if (dist > 2) {
-            const baseSpeed = isSprinting ? 7 - (piece.radius / 180) * 3 : 4.5 - (piece.radius / 180) * 2.5;
-            const speed = Math.max(1.5, Math.min(isSprinting ? 8 : 5, baseSpeed));
+            const baseSpeed = (isSprinting ? 7 - (piece.radius / 180) * 3 : 4.5 - (piece.radius / 180) * 2.5) * octaneMult;
+            const speed = Math.max(1.5, Math.min(isSprinting ? 8 * octaneMult : 5 * octaneMult, baseSpeed));
             piece.x += (dx/dist) * speed;
             piece.y += (dy/dist) * speed;
         }
         piece.x = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.x));
         piece.y = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.y));
     }
+    // Octane boost süresi
+    if (octaneBoost > 0) octaneBoost--;
     // Sprint stamina
     if (shiftHeld && stamina > 0 && gameRunning) {
         stamina = Math.max(0, stamina - STAMINA_DRAIN * (16/1000));
     } else {
         stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN * (16/1000));
+    }
+
+    // Garen pasifi: kendiliğinden büyüme
+    if (selectedCharacter === 'garen' && gameRunning) {
+        for (const piece of playerPieces) {
+            if (piece.alive) {
+                piece.radius += 0.012;
+            }
+        }
+    }
+
+    // Yetenek bekleme süresi
+    if (abilityCooldown > 0) abilityCooldown -= 1/60;
+
+    // Hayatta kalma süresi ve altın kazanma
+    survivalFrames++;
+    if (survivalFrames % 300 === 0 && gameRunning) { // her 5 saniyede bir
+        const main = playerPieces.find(p => p.alive);
+        if (main) {
+            const rateBonus = Math.floor(main.radius / 5);
+            const timeBonus = Math.floor(survivalFrames / 1800); // her 30 sn
+            const earned = Math.max(1, 1 + rateBonus + timeBonus);
+            gold += earned;
+            saveProgress();
+    updateGoldDisplay();
+    // Karakter adını online modal'da güncelle
+    const charNameEl = document.getElementById('charNameOnline');
+    if (charNameEl) charNameEl.textContent = CHARACTERS[selectedCharacter]?.name || '🐍 Yılan';
+}
     }
 
     // En büyük parçayı kamera takip etsin, büyüdükçe kamera açılsın
@@ -1248,6 +1325,17 @@ function updateGame() {
     for (const spike of spikes) {
         spike.update(16);
     }
+    // Yok olan dikenlerin yerine yenileri doğsun
+    while (spikes.length < SPIKE_COUNT) {
+        let attempts = 0, sx, sy, tooClose;
+        do {
+            sx = 500 + Math.random() * (WORLD_SIZE - 1000);
+            sy = 500 + Math.random() * (WORLD_SIZE - 1000);
+            tooClose = spikes.some(s => Math.sqrt((s.x-sx)**2+(s.y-sy)**2) < 300);
+            attempts++;
+        } while (tooClose && attempts < 50);
+        spikes.push(new Spike(sx, sy));
+    }
 
     // Kara delik sistemi (basit)
     const now = Date.now();
@@ -1300,8 +1388,6 @@ function updateGame() {
     // Birleşme
     checkMerge();
 
-    // E cooldown
-    if (eCooldown > 0) eCooldown -= 16/1000;
     if (mergeCooldown > 0) mergeCooldown -= 16/1000;
 
     // Fireball güncelle + çarpışma
@@ -1357,14 +1443,24 @@ function updateGame() {
 
     // Stamina bar
     document.getElementById('staminaFill').style.width = (stamina / MAX_STAMINA * 100) + '%';
-    // E cooldown
+    // E cooldown (ability)
     const eEl = document.getElementById('eCooldownBar');
-    if (eCooldown > 0) { eEl.textContent = '🔥 Katon · ' + Math.ceil(eCooldown) + 'sn'; eEl.style.color = 'rgba(255,107,53,0.5)'; }
-    else { eEl.textContent = '🔥 Katon · E ✔'; eEl.style.color = 'rgba(78,205,196,0.5)'; }
+    if (abilityCooldown > 0) {
+        const remaining = Math.ceil(abilityCooldown);
+        eEl.textContent = `🔥 ${CHARACTERS[selectedCharacter]?.name||'Yetenek'} · ${remaining}sn`;
+        eEl.style.color = 'rgba(255,107,53,0.5)';
+    } else {
+        const abilityName = selectedCharacter === 'garen' ? 'Adalet' : selectedCharacter === 'chogath' ? 'Yut' : selectedCharacter === 'octane' ? 'Adrenalin' : 'Ateş';
+        eEl.textContent = `🔥 ${abilityName} · E ✔`;
+        eEl.style.color = 'rgba(78,205,196,0.5)';
+    }
     // R merge cooldown
     const mergeEl = document.getElementById('mergeCooldownBar');
     if (mergeCooldown > 0) { mergeEl.textContent = '🌀 Birleş · ' + Math.ceil(mergeCooldown) + 'sn'; mergeEl.style.color = 'rgba(78,205,196,0.5)'; }
     else { mergeEl.textContent = '🌀 Birleş · R ✔'; mergeEl.style.color = 'rgba(78,205,196,0.5)'; }
+
+    // Altın göstergesi
+    updateGoldDisplay();
 
     updateUI();
 
@@ -1378,9 +1474,19 @@ function gameOver() {
     gameRunning = false;
     blackHoleActive = false;
     blackHole = null;
+
+    // Hayatta kalma süresine göre altın kazan
+    const main = playerPieces.find(p => p.alive);
+    const endRadius = main ? main.radius : 20;
+    const goldEarned = Math.max(1, Math.floor(survivalFrames / 600) + Math.floor(endRadius / 10));
+    gold += goldEarned;
+    saveProgress();
+
     document.getElementById('finalScore').textContent = totalScore.toLocaleString('tr-TR');
+    document.getElementById('goldEarned').textContent = goldEarned;
     document.getElementById('gameOverBanner').style.display = 'block';
     playDeathSound();
+    updateGoldDisplay();
 }
 
 function createParticles(x,y,color,count=10) {
@@ -1685,7 +1791,7 @@ window.addEventListener('resize', () => { W=window.innerWidth; H=window.innerHei
 // Shift basılı tutma (koşma)
 document.addEventListener('keydown', e => {
     if (e.key === 'Shift') shiftHeld = true;
-    if (e.key === 'e' || e.key === 'E') useFireball();
+    if (e.key === 'e' || e.key === 'E') useAbility();
     if (e.key === 'r' || e.key === 'R') mergeAllPieces();
     if (e.key === ' ') { e.preventDefault(); splitPlayer(); }
 });
@@ -1693,53 +1799,196 @@ document.addEventListener('keyup', e => {
     if (e.key === 'Shift') shiftHeld = false;
 });
 
-function useFireball() {
-    if (!gameRunning || !player || eCooldown > 0) return;
-    const main = playerPieces.find(p => p.alive);
-    if (!main || main.radius < 15) return;
-    let smallest = main;
-    let si = 0;
-    for (let i = 0; i < playerPieces.length; i++) {
-        if (playerPieces[i].alive && playerPieces[i].radius < smallest.radius) { smallest = playerPieces[i]; si = i; }
+// ========== ALTIN & KARAKTER SİSTEMİ ==========
+function saveProgress() {
+    try {
+        localStorage.setItem('babaio_gold', gold);
+        localStorage.setItem('babaio_chars', JSON.stringify(ownedCharacters));
+        localStorage.setItem('babaio_char', selectedCharacter);
+    } catch(e) {}
+}
+function loadProgress() {
+    try {
+        const savedGold = localStorage.getItem('babaio_gold');
+        if (savedGold !== null) gold = parseInt(savedGold) || 0;
+        const savedChars = localStorage.getItem('babaio_chars');
+        if (savedChars !== null) ownedCharacters = JSON.parse(savedChars);
+        if (!ownedCharacters.includes('default')) ownedCharacters.unshift('default');
+        const savedChar = localStorage.getItem('babaio_char');
+        if (savedChar && ownedCharacters.includes(savedChar)) selectedCharacter = savedChar;
+    } catch(e) {}
+    renderCharShop();
+}
+
+function renderCharShop() {
+    const list = document.getElementById('charList');
+    const shop = document.getElementById('charShop');
+    if (!list || !shop) return;
+    list.innerHTML = '';
+    shop.innerHTML = '';
+    const unlocked = ownedCharacters;
+    for (const [id, ch] of Object.entries(CHARACTERS)) {
+        const owned = unlocked.includes(id);
+        const isActive = selectedCharacter === id;
+        const div = document.createElement('div');
+        div.className = 'char-btn' + (isActive ? ' active' : '');
+        if (owned) {
+            div.innerHTML = `<span>${ch.name}</span><span class="desc">${ch.desc}</span>${isActive ? '<span style="color:#4ecdc4;font-size:0.7rem">✓ SEÇİLİ</span>' : ''}`;
+            div.addEventListener('click', () => {
+                selectedCharacter = id;
+                saveProgress();
+                renderCharShop();
+                document.getElementById('skinPanel').classList.remove('open');
+            });
+            list.appendChild(div);
+        } else {
+            div.innerHTML = `<span>${ch.name}</span><span class="desc">${ch.desc}</span><span class="cost">💰 ${ch.cost}</span>`;
+            div.addEventListener('click', () => {
+                if (gold >= ch.cost) {
+                    gold -= ch.cost;
+                    ownedCharacters.push(id);
+                    selectedCharacter = id;
+                    saveProgress();
+                    renderCharShop();
+                    document.getElementById('skinPanel').classList.remove('open');
+                    showNotification(`✅ ${ch.name} satın alındı!`);
+                } else {
+                    showNotification(`❌ Yetersiz altın! ${ch.cost} altın gerekli`);
+                }
+            });
+            shop.appendChild(div);
+        }
     }
-    if (smallest.radius < 12) return;
-    const lostR = smallest.radius * 0.35;
-    smallest.radius -= lostR;
-    if (smallest.radius < 8) smallest.radius = 8;
+    updateGoldDisplay();
+}
+
+function updateGoldDisplay() {
+    const el = document.getElementById('goldDisplay');
+    if (el) el.textContent = gold;
+}
+
+function showNotification(msg) {
+    const area = document.getElementById('notifArea');
+    if (!area) return;
+    area.textContent = msg;
+    area.style.display = 'block';
+    setTimeout(() => { area.style.display = 'none'; }, 2500);
+}
+
+// ========== YETENEK SİSTEMİ ==========
+function useAbility() {
+    if (!gameRunning || !player || abilityCooldown > 0) return;
+    const main = playerPieces.find(p => p.alive);
+    if (!main || main.radius < 12) return;
+    let smallest = main;
+    for (let i = 0; i < playerPieces.length; i++) {
+        if (playerPieces[i].alive && playerPieces[i].radius < smallest.radius) smallest = playerPieces[i];
+    }
+    if (smallest.radius < 10) return;
+
+    switch (selectedCharacter) {
+        case 'default': useFireballAbility(smallest); break;
+        case 'garen': useGarenAbility(smallest); break;
+        case 'chogath': useChogathAbility(smallest); break;
+        case 'octane': useOctaneAbility(smallest); break;
+    }
+}
+
+function useFireballAbility(cell) {
+    const lostR = cell.radius * 0.35;
+    cell.radius -= lostR;
+    if (cell.radius < 8) cell.radius = 8;
     const dx = mouseX - W/2, dy = mouseY - H/2;
     const angle = Math.atan2(dy, dx);
-    fireballs.push(new Fireball(smallest.x, smallest.y, angle, lostR));
-    eCooldown = 12;
-    // Ateşleme efekti - parçadan çıkan alevler
+    fireballs.push(new Fireball(cell.x, cell.y, angle, lostR));
+    abilityCooldown = 12;
     for (let i = 0; i < 20; i++) {
         const a = angle + (Math.random() - 0.5) * 1.8;
-        const p = new Particle(smallest.x, smallest.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 3+Math.random()*5);
-        p.vx = Math.cos(a) * (3 + Math.random() * 6);
-        p.vy = Math.sin(a) * (3 + Math.random() * 6);
-        p.decay = 0.02 + Math.random() * 0.02;
-        particles.push(p);
+        const p = new Particle(cell.x, cell.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 3+Math.random()*5);
+        p.vx = Math.cos(a) * (3 + Math.random() * 6); p.vy = Math.sin(a) * (3 + Math.random() * 6);
+        p.decay = 0.025; particles.push(p);
     }
-    // Ekran sarsıntısı efekti
-    for (let i = 0; i < 5; i++) {
-        particles.push(new Particle(smallest.x + (Math.random()-0.5)*20, smallest.y + (Math.random()-0.5)*20, '#fff', 1+Math.random()*2));
-    }
+    for (let i = 0; i < 5; i++) particles.push(new Particle(cell.x+(Math.random()-0.5)*20,cell.y+(Math.random()-0.5)*20,'#fff',1+Math.random()*2));
     playKillSound();
-    const targetId = smallest.splitGroup;
+    const targetId = cell.splitGroup;
     setTimeout(() => {
         for (const p of playerPieces) {
-            if (p.alive && p.splitGroup === targetId) {
-                p.radius += lostR * 0.85;
-                for (let i = 0; i < 10; i++) {
-                    const pp = new Particle(p.x, p.y, '#4ecdc4', 2+Math.random()*3);
-                    pp.vx = (Math.random() - 0.5) * 4;
-                    pp.vy = (Math.random() - 0.5) * 4;
-                    pp.decay = 0.025;
-                    particles.push(pp);
-                }
-                break;
-            }
+            if (p.alive && p.splitGroup === targetId) { p.radius += lostR * 0.85; break; }
         }
     }, 4000);
+}
+
+function useGarenAbility(cell) {
+    // Adalet Darbesi - etraftaki tüm botlara hasar
+    abilityCooldown = 8;
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        const dist = cell.distTo(bot);
+        if (dist < cell.radius * 3) {
+            bot.radius -= cell.radius * 0.3;
+            createParticles(bot.x, bot.y, '#f6d365', 12);
+            if (bot.radius < 8) { bot.alive = false; kills++; createParticles(bot.x,bot.y,bot.color,20); }
+        }
+    }
+    // Işık kılıcı efekti
+    for (let i = 0; i < 30; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = cell.radius * (1 + Math.random() * 2);
+        const p = new Particle(cell.x + Math.cos(a)*d, cell.y + Math.sin(a)*d, '#f6d365', 3+Math.random()*4);
+        p.vx = Math.cos(a) * (2 + Math.random() * 4); p.vy = Math.sin(a) * (2 + Math.random() * 4);
+        p.decay = 0.02; particles.push(p);
+    }
+    playSplitSound();
+    showNotification('⚔️ ADALET!');
+}
+
+function useChogathAbility(cell) {
+    // Yut - canı az olan botları ye
+    abilityCooldown = 10;
+    let ate = false;
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        if (bot.radius < cell.radius && cell.distTo(bot) < cell.radius * 2.5) {
+            const bonus = bot.radius * 0.5;
+            cell.radius += bonus;
+            bot.alive = false;
+            kills++;
+            createParticles(bot.x,bot.y,'#9c27b0',20);
+            ate = true;
+        }
+    }
+    if (ate) {
+        playDeathSound();
+        showNotification('👹 YUTULDU! +50% can');
+        // Mor ağız efekti
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const p = new Particle(cell.x+Math.cos(a)*cell.radius, cell.y+Math.sin(a)*cell.radius, '#9c27b0', 4+Math.random()*5);
+            p.vx = Math.cos(a) * 3; p.vy = Math.sin(a) * 3; p.decay = 0.02; particles.push(p);
+        }
+    } else {
+        showNotification('👹 Yakında kimse yok!');
+    }
+}
+
+function useOctaneAbility(cell) {
+    // Adrenalin - %15 can harca, 3sn hızlan
+    const cost = cell.radius * 0.15;
+    if (cell.radius - cost < 6) { showNotification('❌ Canın çok düşük!'); return; }
+    cell.radius -= cost;
+    octaneBoost = 180; // 3 saniye (60fps)
+    abilityCooldown = 15;
+    // İğne sesi efekti
+    [800,1200,1600].forEach((f,i) => playNote(f, 0.06, 'sawtooth', 0.1, i*0.05));
+    [400,600,800].forEach((f,i) => playNote(f, 0.04, 'triangle', 0.08, i*0.06 + 0.2));
+    // Enjeksiyon partikülleri
+    for (let i = 0; i < 15; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const p = new Particle(cell.x, cell.y, '#ff1744', 2+Math.random()*3);
+        p.vx = Math.cos(a) * (1 + Math.random() * 2); p.vy = Math.sin(a) * (1 + Math.random() * 2);
+        p.decay = 0.03; particles.push(p);
+    }
+    showNotification('⚡ ADRENALİN!');
 }
 
 function mergeAllPieces() {
@@ -1902,6 +2151,9 @@ document.getElementById('roomCodeInput').addEventListener('keydown', e => {
 // Ön tanımlı oyuncu adı
 userName = 'Oyuncu' + Math.floor(Math.random()*1000);
 document.getElementById('userNameInput').value = userName;
+
+// Kayıtlı ilerlemeyi yükle
+loadProgress();
 
 initGame();
 gameLoop();
