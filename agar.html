@@ -287,7 +287,17 @@
     <button id="btnPlayAgain">Tekrar Oyna</button>
 </div>
 
-<div class="hint-text">🖱️ Fare ile yönlendir • Küçükleri ye, büyüklerden kaç</div>
+<div class="hint-text">🖱️ Fare ile yönlendir • Küçükleri ye, büyüklerden kaç • <kbd>M</kbd> müzik • <kbd>N</kbd> sonraki şarkı</div>
+
+<div id="memeNotification" style="position:fixed;bottom:120px;right:20px;background:rgba(10,10,26,0.9);border:2px solid #f6d365;border-radius:12px;padding:8px 16px;color:#f6d365;font-size:0.8rem;font-weight:700;z-index:998;display:none;animation:slideInRight 0.3s ease;backdrop-filter:blur(8px)"></div>
+
+<div id="musicControl" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;display:flex;gap:8px;align-items:center;background:rgba(10,10,26,0.85);border:1px solid rgba(78,205,196,0.2);border-radius:20px;padding:8px 16px;backdrop-filter:blur(8px);pointer-events:auto">
+    <button id="btnMusicToggle" style="background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.3);border-radius:12px;color:#4ecdc4;padding:6px 12px;cursor:pointer;font-size:0.75rem;font-weight:600">🎵 AÇIK</button>
+    <button id="btnMusicNext" style="background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.2);border-radius:12px;color:#4ecdc4;padding:6px 10px;cursor:pointer;font-size:0.75rem">⏭</button>
+    <input type="range" id="volSlider" min="0" max="100" value="70" style="width:80px;height:4px;-webkit-appearance:none;background:rgba(78,205,196,0.3);border-radius:2px;outline:none">
+    <span style="color:#718096;font-size:0.6rem" id="volLabel">70%</span>
+    <span style="color:#4ecdc4;font-size:0.6rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="nowPlaying">—</span>
+</div>
 
 <script>
 // ========== AYARLAR ==========
@@ -325,106 +335,214 @@ let userImageLoaded = false;
 let totalFrames = 0;
 let narutoPlaying = false;
 
-// ========== SES SİSTEMİ ==========
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
+// ========== MEME SES SİSTEMİ ==========
+const MemeAudio = {
+    ctx: null,
+    masterGain: null,
+    musicGain: null,
+    musicEnabled: true,
+    sfxEnabled: true,
+    currentSong: null,
+    currentSongIndex: -1,
 
-function initAudio() {
-    if (!audioCtx) audioCtx = new AudioCtx();
-}
+    playlist: [
+        { title: 'Fun - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+        { title: 'Happy Life - FREDJI', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+        { title: 'Last Summer - Ikson', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+        { title: 'Awakening - tubebackr', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+        { title: 'Jungle - Qlowdy', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+        { title: 'Dirt Rhodes - Kevin MacLeod', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+        { title: 'Shadows and Dust - Scott Buckley', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
+        { title: 'Phonk Execution - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+    ],
 
-function playEatSound() {
-    try {
-        initAudio();
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
-        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-        o.start(audioCtx.currentTime);
-        o.stop(audioCtx.currentTime + 0.15);
-    } catch(e) {}
-}
+    memeNames: ['😎 BRUH','💥 VINE BOOM','🔧 METAL PIPE','📯 AIRHORN','😭 EMOTIONAL DAMAGE'],
 
-function playDeathSound() {
-    try {
-        initAudio();
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type = 'sawtooth';
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.frequency.setValueAtTime(300, audioCtx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.5);
-        g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-        o.start(audioCtx.currentTime);
-        o.stop(audioCtx.currentTime + 0.5);
-    } catch(e) {}
-}
+    init() {
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = 0.7;
+            this.masterGain.connect(this.ctx.destination);
+        } catch(e) {}
+    },
 
-function playNarutoSound() {
-    try {
-        initAudio();
-        // Naruto temalı melodi
-        const notes = [262, 330, 392, 523, 392, 523, 659, 523, 392, 330, 262];
-        const dur = [0.15, 0.15, 0.15, 0.3, 0.15, 0.15, 0.3, 0.15, 0.15, 0.15, 0.4];
-        let time = audioCtx.currentTime;
-        notes.forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'triangle';
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.frequency.setValueAtTime(freq, time);
-            g.gain.setValueAtTime(0.12, time);
-            g.gain.exponentialRampToValueAtTime(0.001, time + dur[i]);
-            o.start(time);
-            o.stop(time + dur[i]);
-            time += dur[i];
-        });
-    } catch(e) {}
-}
+    setVolume(v) {
+        if (this.masterGain) this.masterGain.gain.value = v;
+    },
 
-function playLevelUpSound() {
-    try {
-        initAudio();
-        [523, 659, 784, 1047].forEach((freq, i) => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = 'sine';
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            o.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
-            g.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.08);
-            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.2);
-            o.start(audioCtx.currentTime + i * 0.08);
-            o.stop(audioCtx.currentTime + i * 0.08 + 0.2);
-        });
-        narutoPlaying = true;
-        setTimeout(() => narutoPlaying = false, 500);
-    } catch(e) {}
-}
+    playBruh() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(80, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+            osc.frequency.setValueAtTime(40, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, now);
+            filter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.3);
+            this.showMeme(0);
+        } catch(e) {}
+    },
 
-function playBotDeathSound() {
-    try {
-        initAudio();
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type = 'sine';
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.frequency.setValueAtTime(600, audioCtx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-        o.start(audioCtx.currentTime);
-        o.stop(audioCtx.currentTime + 0.2);
-    } catch(e) {}
-}
+    playVineBoom() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(55, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(200, now);
+            filter.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+            gain.gain.setValueAtTime(0.6, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.5);
+            this.showMeme(1);
+        } catch(e) {}
+    },
+
+    playMetalPipe() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            [1, 2.5, 4.3, 6.8].forEach((h, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                osc.type = 'sine';
+                osc.frequency.value = 200 * h;
+                filter.type = 'bandpass';
+                filter.frequency.value = 200 * h;
+                filter.Q.value = 20;
+                gain.gain.setValueAtTime(0.15 / (i + 1), now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8 + i * 0.05);
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now + i * 0.02);
+                osc.stop(now + 1);
+            });
+            this.showMeme(2);
+        } catch(e) {}
+    },
+
+    playAirhorn() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.6);
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(600, now);
+            filter.frequency.exponentialRampToValueAtTime(150, now + 0.6);
+            filter.Q.value = 5;
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.8);
+            this.showMeme(3);
+        } catch(e) {}
+    },
+
+    playEmotionalDamage() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            [262, 330, 392, 523, 659, 784, 1047].forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, now + i * 0.07);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.15);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now + i * 0.07);
+                osc.stop(now + i * 0.07 + 0.15);
+            });
+            this.showMeme(4);
+        } catch(e) {}
+    },
+
+    playRandomMeme() {
+        [()=>this.playBruh(),()=>this.playVineBoom(),()=>this.playMetalPipe(),()=>this.playAirhorn(),()=>this.playEmotionalDamage()][Math.floor(Math.random()*5)]();
+    },
+
+    showMeme(idx) {
+        const el = document.getElementById('memeNotification');
+        if (!el) return;
+        el.textContent = `🔊 ${this.memeNames[idx] || this.memeNames[Math.floor(Math.random()*this.memeNames.length)]}`;
+        el.style.display = 'block';
+        clearTimeout(this.memeTimeout);
+        this.memeTimeout = setTimeout(() => el.style.display = 'none', 1200);
+    },
+
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        const btn = document.getElementById('btnMusicToggle');
+        if (btn) btn.textContent = this.musicEnabled ? '🎵 AÇIK' : '🎵 KAPALI';
+        if (this.musicEnabled) {
+            if (!this.currentSong) this.playNextSong();
+            else this.currentSong.play().catch(()=>{});
+        } else if (this.currentSong) this.currentSong.pause();
+    },
+
+    playNextSong() {
+        if (!this.musicEnabled) return;
+        if (this.currentSong) { this.currentSong.pause(); this.currentSong = null; }
+        this.currentSongIndex = (this.currentSongIndex + 1) % this.playlist.length;
+        const song = this.playlist[this.currentSongIndex];
+        this.currentSong = new Audio(song.url);
+        this.currentSong.volume = 0.5;
+        this.currentSong.loop = false;
+        this.currentSong.crossOrigin = 'anonymous';
+        this.currentSong.addEventListener('ended', () => this.playNextSong());
+        this.currentSong.addEventListener('error', () => setTimeout(() => this.playNextSong(), 1000));
+        this.currentSong.play().catch(()=>{});
+        const np = document.getElementById('nowPlaying');
+        if (np) np.textContent = `🎵 ${song.title}`;
+    },
+
+    playEatSound() { if (this.sfxEnabled) this.playRandomMeme(); },
+    playDeathSound() { if (this.sfxEnabled) { this.playEmotionalDamage(); setTimeout(()=>this.playMetalPipe(), 400); } },
+    playLevelUpSound() { if (this.sfxEnabled) { this.playAirhorn(); setTimeout(()=>this.playVineBoom(), 300); } },
+    playBotDeathSound() { if (this.sfxEnabled) this.playVineBoom(); },
+    playNarutoSound() { if (this.sfxEnabled) this.playAirhorn(); }
+};
+
+function initAudio() { MemeAudio.init(); }
+function playEatSound() { MemeAudio.playEatSound(); }
+function playDeathSound() { MemeAudio.playDeathSound(); }
+function playLevelUpSound() { MemeAudio.playLevelUpSound(); }
+function playBotDeathSound() { MemeAudio.playBotDeathSound(); }
+function playNarutoSound() { MemeAudio.playNarutoSound(); }
 
 // ========== OYUN MANTIĞI ==========
 class Cell {
@@ -806,6 +924,10 @@ function initGame() {
     document.getElementById('scoreDisplay').textContent = '0';
     document.getElementById('killDisplay').textContent = 'Öldürme: 0';
     updateLeaderboard();
+    if (!MemeAudio.ctx) MemeAudio.init();
+    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
+        MemeAudio.playNextSong();
+    }
 }
 
 function spawnFood() {
@@ -1104,9 +1226,24 @@ document.getElementById('btnPlayAgain').addEventListener('click', () => {
     initGame();
 });
 
+// Klavye kısayolları
+document.addEventListener('keydown', e => {
+    if (e.key === 'm' || e.key === 'M') { MemeAudio.toggleMusic(); }
+    if (e.key === 'n' || e.key === 'N') { MemeAudio.playNextSong(); }
+});
+
+// Müzik kontrolleri
+document.getElementById('btnMusicToggle').addEventListener('click', () => MemeAudio.toggleMusic());
+document.getElementById('btnMusicNext').addEventListener('click', () => MemeAudio.playNextSong());
+document.getElementById('volSlider').addEventListener('input', function() {
+    const v = this.value / 100;
+    MemeAudio.setVolume(v);
+    document.getElementById('volLabel').textContent = Math.round(v * 100) + '%';
+});
+
 // Canvas click (ses başlatma için)
 canvas.addEventListener('click', () => {
-    initAudio();
+    if (!MemeAudio.ctx) MemeAudio.init();
 });
 
 // ========== BAŞLAT ==========

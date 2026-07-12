@@ -189,7 +189,6 @@
             color: #4ecdc4;
         }
 
-        /* Overlay */
         .overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(10,10,26,0.92);
@@ -262,7 +261,6 @@
         }
         .overlay-input:focus { border-color:#4ecdc4; }
 
-        /* Menü overlay */
         .menu-grid {
             display: grid;
             gap: 10px;
@@ -284,7 +282,6 @@
         .menu-btn.danger { border-color: rgba(252,70,107,0.4); }
         .menu-btn.danger:hover { border-color: #fc466b; background: rgba(252,70,107,0.1); }
 
-        /* Level-up notification */
         .level-flash {
             position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
             background: linear-gradient(135deg,#96c93d,#4ecdc4);
@@ -301,6 +298,51 @@
         }
         @keyframes dropIn { from { transform: translateX(-50%) translateY(-80px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }
         .level-flash.show { display: block; }
+
+        .meme-notification {
+            position: fixed; bottom: 80px; right: 20px;
+            background: rgba(10,10,26,0.9);
+            border: 2px solid #f6d365;
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: #f6d365;
+            font-size: 0.8rem;
+            font-weight: 700;
+            z-index: 998;
+            display: none;
+            animation: slideInRight 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+        @keyframes slideInRight { from { transform: translateX(80px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .volume-control input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: rgba(78,205,196,0.3);
+            border-radius: 2px;
+            outline: none;
+        }
+        .volume-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+        }
+        .volume-control .vol-label {
+            color: #a0aec0;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
         @media (max-width: 800px) {
             .container { flex-direction: column; align-items: center; gap: 15px; }
@@ -320,6 +362,7 @@
 <body>
 
 <div class="level-flash" id="levelFlash"></div>
+<div class="meme-notification" id="memeNotification"></div>
 
 <div class="container">
     <div class="game-wrapper">
@@ -328,7 +371,8 @@
     </div>
         <div class="hint">
             <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> hareket &nbsp;|&nbsp;
-            <kbd>Boşluk</kbd> duraklat &nbsp;|&nbsp; <kbd>Esc</kbd> menü
+            <kbd>Boşluk</kbd> duraklat &nbsp;|&nbsp; <kbd>Esc</kbd> menü &nbsp;|&nbsp;
+            <kbd>M</kbd> müzik &nbsp;|&nbsp; <kbd>N</kbd> sonraki şarkı
         </div>
         <div style="margin-top:8px;min-height:50px;display:flex;justify-content:center;align-items:center;pointer-events:none">
             <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px;pointer-events:auto" data-ad-client="ca-pub-9362960325147518" data-ad-slot="3962713151"></ins>
@@ -365,6 +409,20 @@
         </div>
 
         <div class="panel">
+            <h3>🎵 Müzik & Ses</h3>
+            <div class="volume-control">
+                <span class="vol-label">🎧</span>
+                <input type="range" id="volSlider" min="0" max="100" value="70">
+                <span class="vol-label" id="volLabel">70%</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button class="btn btn-secondary" id="btnMusicToggle" style="flex:1;font-size:0.7rem">🎵 MÜZİK AÇIK</button>
+                <button class="btn btn-secondary" id="btnMusicNext" style="flex:0.5;font-size:0.7rem">⏭</button>
+            </div>
+            <div style="color:#718096;font-size:0.6rem;margin-top:4px;text-align:center" id="nowPlaying">—</div>
+        </div>
+
+        <div class="panel">
             <h3>🏆 Skor Tablosu</h3>
             <div class="highscores-list" id="scoreList">
                 <div class="empty-msg">Henüz skor kaydı yok.</div>
@@ -374,7 +432,6 @@
     </div>
 </div>
 
-<!-- Oyun Bitti -->
 <div class="overlay" id="gameOverOverlay">
     <div class="overlay-box gameover">
         <div class="overlay-title">💀 OYUN BİTTİ</div>
@@ -390,7 +447,6 @@
     </div>
 </div>
 
-<!-- Menü (ESC) -->
 <div class="overlay" id="menuOverlay">
     <div class="overlay-box">
         <div class="overlay-title">⚙️ MENÜ</div>
@@ -403,7 +459,6 @@
     </div>
 </div>
 
-<!-- Seviye Atlama -->
 <div class="overlay" id="levelUpOverlay">
     <div class="overlay-box">
         <div class="overlay-title">🎉 SEVİYE ATLADI! 🎉</div>
@@ -430,7 +485,6 @@ const MIN_SPEED = 60;
 const BASE_SPEED = 150;
 const SPEED_PER_APPLE = 0.8;
 
-// Seviye konfigürasyonu
 const LVL = {
     1:  { speed:150, pts:10, color:'#4ecdc4',       name:'Yavru Yılan' },
     2:  { speed:140, pts:12, color:'#45b7d1',        name:'Genç Yılan' },
@@ -453,6 +507,7 @@ const levelVal = document.getElementById('levelVal');
 const lengthVal = document.getElementById('lengthVal');
 const scoreList = document.getElementById('scoreList');
 const levelFlash = document.getElementById('levelFlash');
+const memeNotification = document.getElementById('memeNotification');
 const gameOverOverlay = document.getElementById('gameOverOverlay');
 const menuOverlay = document.getElementById('menuOverlay');
 const levelUpOverlay = document.getElementById('levelUpOverlay');
@@ -463,6 +518,324 @@ const nameInput = document.getElementById('nameInput');
 const luLevel = document.getElementById('luLevel');
 const luPoints = document.getElementById('luPoints');
 const levelSub = document.getElementById('levelSub');
+const nowPlaying = document.getElementById('nowPlaying');
+const volSlider = document.getElementById('volSlider');
+const volLabel = document.getElementById('volLabel');
+const btnMusicToggle = document.getElementById('btnMusicToggle');
+const btnMusicNext = document.getElementById('btnMusicNext');
+
+// ========== MEME SES SİSTEMİ ==========
+const MemeAudio = {
+    ctx: null,
+    masterGain: null,
+    musicGain: null,
+    musicEnabled: true,
+    sfxEnabled: true,
+    currentSong: null,
+    currentSongIndex: -1,
+    isPlaying: false,
+
+    playlist: [
+        { title: 'Fun - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+        { title: 'Happy Life - FREDJI', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+        { title: 'Last Summer - Ikson', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+        { title: 'Awakening - tubebackr', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+        { title: 'Jungle - Qlowdy', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+        { title: 'Dirt Rhodes - Kevin MacLeod', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+        { title: 'Shadows and Dust - Scott Buckley', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
+        { title: 'Phonk Execution - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+    ],
+
+    memeNames: [
+        '😎 BRUH', '💥 VINE BOOM', '🔧 METAL PIPE', '📯 AIRHORN',
+        '😭 EMOTIONAL DAMAGE', '🤣 VINE BOOM', '😤 BRUH MOMENT', '💀 SKELETON'
+    ],
+
+    init() {
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = volSlider.value / 100;
+            this.masterGain.connect(this.ctx.destination);
+
+            this.musicGain = this.ctx.createGain();
+            this.musicGain.gain.value = 0.5;
+            this.musicGain.connect(this.masterGain);
+        } catch(e) {}
+    },
+
+    setVolume(v) {
+        if (this.masterGain) this.masterGain.gain.value = v;
+        volLabel.textContent = Math.round(v * 100) + '%';
+    },
+
+    // Procedural meme sound: BRUH - low frequency wobble
+    playBruh() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(80, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+            osc.frequency.setValueAtTime(40, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, now);
+            filter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.3);
+
+            this.showMemeName(0);
+        } catch(e) {}
+    },
+
+    // Procedural meme sound: VINE BOOM - sub bass hit
+    playVineBoom() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(55, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(200, now);
+            filter.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+
+            gain.gain.setValueAtTime(0.6, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.5);
+
+            this.showMemeName(1);
+        } catch(e) {}
+    },
+
+    // Procedural meme sound: METAL PIPE - metallic resonance
+    playMetalPipe() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const harmonics = [1, 2.5, 4.3, 6.8, 11.2];
+
+            harmonics.forEach((h, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                osc.type = 'sine';
+                osc.frequency.value = 200 * h;
+
+                filter.type = 'bandpass';
+                filter.frequency.value = 200 * h;
+                filter.Q.value = 20;
+
+                gain.gain.setValueAtTime(0.15 / (i + 1), now);
+                gain.gain.setValueAtTime(0.08 / (i + 1), now + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8 + i * 0.05);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now + i * 0.02);
+                osc.stop(now + 1);
+            });
+
+            // Impact noise
+            const bufferSize = this.ctx.sampleRate * 0.05;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const ng = this.ctx.createGain();
+            ng.gain.setValueAtTime(0.3, now);
+            ng.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            noise.connect(ng);
+            ng.connect(this.masterGain);
+            noise.start(now);
+
+            this.showMemeName(2);
+        } catch(e) {}
+    },
+
+    // Procedural meme sound: AIRHORN - frequency sweep
+    playAirhorn() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.6);
+
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(600, now);
+            filter.frequency.exponentialRampToValueAtTime(150, now + 0.6);
+            filter.Q.value = 5;
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.setValueAtTime(0.25, now + 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + 0.8);
+
+            this.showMemeName(3);
+        } catch(e) {}
+    },
+
+    // Procedural meme sound: EMOTIONAL DAMAGE - ascending tone
+    playEmotionalDamage() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const now = this.ctx.currentTime;
+            const notes = [262, 330, 392, 523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, now + i * 0.07);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.15);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now + i * 0.07);
+                osc.stop(now + i * 0.07 + 0.15);
+            });
+
+            this.showMemeName(4);
+        } catch(e) {}
+    },
+
+    // Rastgele meme sesi çal
+    playRandomMeme() {
+        const memes = [
+            () => this.playBruh(),
+            () => this.playVineBoom(),
+            () => this.playMetalPipe(),
+            () => this.playAirhorn(),
+            () => this.playEmotionalDamage(),
+        ];
+        const idx = Math.floor(Math.random() * memes.length);
+        memes[idx]();
+    },
+
+    showMemeName(idx) {
+        const name = this.memeNames[idx] || this.memeNames[Math.floor(Math.random() * this.memeNames.length)];
+        memeNotification.textContent = `🔊 ${name}`;
+        memeNotification.style.display = 'block';
+        clearTimeout(this.memeTimeout);
+        this.memeTimeout = setTimeout(() => {
+            memeNotification.style.display = 'none';
+        }, 1200);
+    },
+
+    // Müzik
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        btnMusicToggle.textContent = this.musicEnabled ? '🎵 MÜZİK AÇIK' : '🎵 MÜZİK KAPALI';
+
+        if (this.musicEnabled) {
+            if (!this.currentSong) {
+                this.playNextSong();
+            } else {
+                this.currentSong.play().catch(() => {});
+            }
+        } else {
+            if (this.currentSong) {
+                this.currentSong.pause();
+            }
+        }
+    },
+
+    playNextSong() {
+        if (!this.musicEnabled) return;
+        if (this.currentSong) {
+            this.currentSong.pause();
+            this.currentSong = null;
+        }
+
+        this.currentSongIndex = (this.currentSongIndex + 1) % this.playlist.length;
+        const song = this.playlist[this.currentSongIndex];
+        this.currentSong = new Audio(song.url);
+        this.currentSong.volume = 0.5;
+        this.currentSong.loop = false;
+        this.currentSong.crossOrigin = 'anonymous';
+
+        this.currentSong.addEventListener('ended', () => {
+            this.playNextSong();
+        });
+
+        this.currentSong.addEventListener('error', () => {
+            setTimeout(() => this.playNextSong(), 1000);
+        });
+
+        this.currentSong.play().catch(() => {});
+        nowPlaying.textContent = `🎵 ${song.title}`;
+    },
+
+    playEatSound() {
+        if (!this.sfxEnabled) return;
+        // Her yemede rastgele bir meme sesi
+        this.playRandomMeme();
+    },
+
+    playDeathSound() {
+        if (!this.sfxEnabled) return;
+        this.playEmotionalDamage();
+        setTimeout(() => this.playMetalPipe(), 400);
+    },
+
+    playLevelUpSound() {
+        if (!this.sfxEnabled) return;
+        this.playAirhorn();
+        setTimeout(() => this.playVineBoom(), 300);
+    },
+
+    playBotDeathSound() {
+        if (!this.sfxEnabled) return;
+        this.playVineBoom();
+    }
+};
+
+// ========== ESKİ SES FONKSİYONLARINI GEÇERSİZ KIL ==========
+// Orijinal ses fonksiyonlarını MemeAudio ile değiştir
+let audioCtx = null;
+function initAudio() { MemeAudio.init(); }
+function playEatSound() { MemeAudio.playEatSound(); }
+function playDeathSound() { MemeAudio.playDeathSound(); }
+function playLevelUpSound() { MemeAudio.playLevelUpSound(); }
+function playBotDeathSound() { MemeAudio.playBotDeathSound(); }
+function playNarutoSound() { MemeAudio.playAirhorn(); }
 
 // ========== OYUN DURUMU ==========
 let snake = [];
@@ -482,7 +855,6 @@ let timer = 0;
 let particles = [];
 let stars = [];
 
-// Arka plan yıldızları
 for (let i = 0; i < 80; i++) {
     stars.push({ x: Math.random()*SIZE, y: Math.random()*SIZE, r: Math.random()*1.5+0.3, s: Math.random()*0.5+0.1 });
 }
@@ -566,9 +938,7 @@ function step() {
     dir = {...nextDir};
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-    // Duvar
     if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS) { endGame(); return; }
-    // Kendi
     if (onSnake(head)) { endGame(); return; }
 
     snake.unshift(head);
@@ -579,8 +949,7 @@ function step() {
         snake.pop();
     }
 
-    // Rastgele fare spawn kontrolü (her adımda küçük bir şans)
-    if (Math.random() < 0.01) spawnMouse(); // fare kaçabilir
+    if (Math.random() < 0.01) spawnMouse();
 
     draw();
 }
@@ -590,11 +959,11 @@ function eatMouse() {
     score += cfg.pts;
     eatCount++;
     burst(mouse.x, mouse.y, cfg.color, 12);
+    playEatSound();
     spawnMouse();
 
     if (eatCount >= APPLES_PER_LEVEL) levelUp();
 
-    // Hızlanma
     if (speed > MIN_SPEED) { speed = Math.max(MIN_SPEED, speed - SPEED_PER_APPLE); resetLoop(); }
     updateUI();
 }
@@ -607,22 +976,20 @@ function levelUp() {
     resetLoop();
     score += LEVEL_BONUS * level;
     updateUI();
+    playLevelUpSound();
 
-    // Seviye atlama patlaması
     for (let i = 0; i < 40; i++) {
         const a = Math.random()*Math.PI*2;
         const spd = 2 + Math.random()*4;
         particles.push({ x:SIZE/2, y:SIZE/2, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:4+Math.random()*8, c:cfg.color, life:1.5 });
     }
 
-    // Overlay göster
     luLevel.textContent = level;
     luPoints.textContent = `+${cfg.pts}`;
     levelSub.textContent = `${cfg.name} seviyesine ulaştınız!`;
     levelUpOverlay.classList.add('active');
     paused = true;
 
-    // Flash bildirim
     levelFlash.textContent = `🎉 SEVİYE ${level}: ${cfg.name} 🎉`;
     levelFlash.classList.add('show');
     setTimeout(() => levelFlash.classList.remove('show'), 2500);
@@ -633,6 +1000,7 @@ function endGame() {
     if (loop) { clearInterval(loop); loop = null; }
     if (score > highScore) highScore = score;
     updateUI();
+    playDeathSound();
 
     finalScore.textContent = score.toLocaleString('tr-TR');
     finalLevel.textContent = level;
@@ -640,7 +1008,6 @@ function endGame() {
     nameInput.value = loadName() || '';
     gameOverOverlay.classList.add('active');
 
-    // Patlama
     snake.forEach((s,i) => setTimeout(() => burst(s.x, s.y, '#fc466b', 5), i*20));
 }
 
@@ -657,19 +1024,22 @@ function skipAndRestart() {
     init();
 }
 
-// ========== KONTROL ==========
 function setDir(d) {
     if (d.x === -dir.x && d.y === -dir.y) return;
     nextDir = d;
 }
 
 function startGame() {
+    if (!MemeAudio.ctx) { MemeAudio.init(); }
     if (over) { init(); }
     if (running && !paused) return;
     running = true; paused = false;
     if (!loop) loop = setInterval(step, speed);
     canvas.focus();
     document.getElementById('btnStart').textContent = '▶ DEVAM ET';
+    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
+        MemeAudio.playNextSong();
+    }
 }
 
 function togglePause() {
@@ -694,7 +1064,6 @@ function resetLoop() {
     if (running && !over) loop = setInterval(step, speed);
 }
 
-// ========== EFECTLER ==========
 function burst(gx, gy, color, count) {
     const cx = gx*GRID + GRID/2, cy = gy*GRID + GRID/2;
     for (let i = 0; i < count; i++) {
@@ -704,20 +1073,16 @@ function burst(gx, gy, color, count) {
     }
 }
 
-// ========== ÇİZİM ==========
 function draw() {
     ctx.clearRect(0, 0, SIZE, SIZE);
 
-    // Arka plan
     const grad = ctx.createRadialGradient(SIZE/2,SIZE/2,0,SIZE/2,SIZE/2,SIZE);
     grad.addColorStop(0,'#0f0f2a'); grad.addColorStop(1,'#050510');
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,SIZE,SIZE);
 
-    // Yıldızlar
     stars.forEach(s => { ctx.fillStyle=`rgba(255,255,255,${0.3+Math.sin(timer*s.s)*0.3})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
 
-    // Grid çizgileri (hafif)
     ctx.strokeStyle = 'rgba(78,205,196,0.03)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= CELLS; i++) {
@@ -726,16 +1091,10 @@ function draw() {
         ctx.beginPath(); ctx.moveTo(0,p); ctx.lineTo(SIZE,p); ctx.stroke();
     }
 
-    // Fareyi çiz
     drawMouse();
-
-    // Yılanı çiz
     drawSnake();
-
-    // Parçacıklar
     drawParticles();
 
-    // Durduruldu yazısı
     if (paused && !over && !levelUpOverlay.classList.contains('active') && !menuOverlay.classList.contains('active')) {
         ctx.fillStyle = 'rgba(10,10,26,0.8)';
         ctx.fillRect(0,0,SIZE,SIZE);
@@ -748,7 +1107,6 @@ function draw() {
     }
 
     timer += 0.02;
-    // Partikül güncelleme
     particles = particles.filter(p => {
         p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.life -= 0.025;
         return p.life > 0;
@@ -760,10 +1118,8 @@ function drawMouse() {
     const pulse = Math.sin(timer*4)*2;
     const sz = GRID/2 - 2 + pulse;
 
-    // Parlama
     ctx.shadowColor = '#f6d365'; ctx.shadowBlur = 20;
 
-    // Fare gövdesi (oval)
     const g = ctx.createRadialGradient(x-3,y-3,0,x,y,sz);
     g.addColorStop(0,'#fff5e6'); g.addColorStop(0.4,'#d4a574'); g.addColorStop(1,'#8b6f47');
     ctx.fillStyle = g;
@@ -771,7 +1127,6 @@ function drawMouse() {
     ctx.ellipse(x, y+1, sz*0.7, sz*0.9, 0, 0, Math.PI*2);
     ctx.fill();
 
-    // Kulaklar
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#b8957a';
     ctx.beginPath(); ctx.ellipse(x-5, y-6, 4, 5, -0.3, 0, Math.PI*2); ctx.fill();
@@ -780,7 +1135,6 @@ function drawMouse() {
     ctx.beginPath(); ctx.ellipse(x-5, y-6, 2.5, 3.5, -0.3, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(x+5, y-6, 2.5, 3.5, 0.3, 0, Math.PI*2); ctx.fill();
 
-    // Gözler
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath(); ctx.arc(x-3, y-2, 2, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(x+3, y-2, 2, 0, Math.PI*2); ctx.fill();
@@ -788,11 +1142,9 @@ function drawMouse() {
     ctx.beginPath(); ctx.arc(x-2, y-3, 0.7, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(x+4, y-3, 0.7, 0, Math.PI*2); ctx.fill();
 
-    // Burun
     ctx.fillStyle = '#ff9999';
     ctx.beginPath(); ctx.ellipse(x, y+2, 1.5, 1, 0, 0, Math.PI*2); ctx.fill();
 
-    // Bıyıklar
     ctx.strokeStyle = '#555'; ctx.lineWidth = 0.5;
     const bm = 0.8;
     for (let s = -1; s <= 1; s+=2) {
@@ -816,14 +1168,12 @@ function drawSnake() {
         const pad = isHead ? 1 : 2;
         const sz = GRID - pad*2;
 
-        // Vücut rengi
         let color;
         if (isHead) color = bc;
         else { const d = 30; color = `rgb(${Math.max(0,parseInt(bc.slice(1,3),16)-p*d)},${Math.max(0,parseInt(bc.slice(3,5),16)-p*d)},${Math.max(0,parseInt(bc.slice(5,7),16)-p*d)})`; }
 
         if (isHead) ctx.shadowColor = bc; ctx.shadowBlur = isHead ? 12 : 0;
 
-        // Yuvarlak segment
         ctx.fillStyle = color;
         const r = isHead ? 7 : 4;
         ctx.beginPath();
@@ -840,7 +1190,6 @@ function drawSnake() {
         ctx.fill();
 
         if (isHead) {
-            // Gözler
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#0a0a1a';
             let ex1, ey1, ex2, ey2;
@@ -851,7 +1200,6 @@ function drawSnake() {
             else { ex1=x+o; ey1=y+sz-1-e; ex2=x+sz-o; ey2=y+sz-1-e; }
             ctx.beginPath(); ctx.arc(ex1,ey1,3,0,Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(ex2,ey2,3,0,Math.PI*2); ctx.fill();
-            // Göz bebeği
             ctx.fillStyle = '#4ecdc4';
             let px=0,py=0;
             if (dir.x===1) px=1.5; else if (dir.x===-1) px=-1.5;
@@ -875,13 +1223,11 @@ function drawParticles() {
     });
 }
 
-// ========== ANİMASYON DÖNGÜSÜ ==========
 function animLoop() {
     draw();
     requestAnimationFrame(animLoop);
 }
 
-// ========== UI GÜNCELLEME ==========
 function updateUI() {
     scoreVal.textContent = score.toLocaleString('tr-TR');
     highVal.textContent = highScore.toLocaleString('tr-TR');
@@ -890,7 +1236,6 @@ function updateUI() {
 }
 
 // ========== OLAY DİNLEYİCİLER ==========
-// Klavye
 document.addEventListener('keydown', e => {
     switch(e.key) {
         case 'ArrowUp': case 'w': case 'W': e.preventDefault(); setDir({x:0,y:-1}); break;
@@ -898,6 +1243,8 @@ document.addEventListener('keydown', e => {
         case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); setDir({x:-1,y:0}); break;
         case 'ArrowRight': case 'd': case 'D': e.preventDefault(); setDir({x:1,y:0}); break;
         case ' ': e.preventDefault(); togglePause(); break;
+        case 'm': case 'M': e.preventDefault(); MemeAudio.toggleMusic(); break;
+        case 'n': case 'N': e.preventDefault(); MemeAudio.playNextSong(); break;
         case 'Escape': e.preventDefault();
             if (levelUpOverlay.classList.contains('active')) { levelUpOverlay.classList.remove('active'); paused=false; }
             else if (gameOverOverlay.classList.contains('active')) { skipAndRestart(); }
@@ -907,35 +1254,39 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Yön butonları
 document.getElementById('btnUp').addEventListener('click', () => setDir({x:0,y:-1}));
 document.getElementById('btnDown').addEventListener('click', () => setDir({x:0,y:1}));
 document.getElementById('btnLeft').addEventListener('click', () => setDir({x:-1,y:0}));
 document.getElementById('btnRight').addEventListener('click', () => setDir({x:1,y:0}));
 
-// Ana butonlar
 document.getElementById('btnStart').addEventListener('click', startGame);
 document.getElementById('btnPause').addEventListener('click', togglePause);
 document.getElementById('btnRestart').addEventListener('click', restart);
 document.getElementById('btnClearScores').addEventListener('click', clearScores);
 
-// Oyun bitti butonları
 document.getElementById('btnSave').addEventListener('click', saveAndRestart);
 document.getElementById('btnSkip').addEventListener('click', skipAndRestart);
 document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') saveAndRestart(); });
 
-// Menü butonları
 document.getElementById('menuResume').addEventListener('click', () => { menuOverlay.classList.remove('active'); paused=false; canvas.focus(); });
 document.getElementById('menuRestart').addEventListener('click', () => { menuOverlay.classList.remove('active'); restart(); });
 document.getElementById('menuQuit').addEventListener('click', () => { menuOverlay.classList.remove('active'); paused=false; if (loop) { clearInterval(loop); loop=null; } running=false; init(); document.getElementById('btnStart').textContent='▶ OYUNU BAŞLAT'; });
 
-// Seviye atlama
 document.getElementById('btnCont').addEventListener('click', () => { levelUpOverlay.classList.remove('active'); paused=false; canvas.focus(); });
 
-// Canvas click - oyun başlat
 canvas.addEventListener('click', () => { canvas.focus(); if (!running || over) startGame(); });
 
-// Dokunmatik kaydırma
+// Müzik butonları
+btnMusicToggle.addEventListener('click', () => MemeAudio.toggleMusic());
+btnMusicNext.addEventListener('click', () => MemeAudio.playNextSong());
+
+// Ses seviyesi
+volSlider.addEventListener('input', () => {
+    const v = volSlider.value / 100;
+    MemeAudio.setVolume(v);
+});
+
+// Dokunmatik
 let tx=0, ty=0;
 canvas.addEventListener('touchstart', e => {
     tx = e.touches[0].clientX;
@@ -948,7 +1299,6 @@ canvas.addEventListener('touchend', e => {
     else { if (Math.abs(dy)>25) setDir({x:0,y:dy>0?1:-1}); }
 }, {passive:true});
 
-// Mobil ekran kontrolleri (canvas üzerinde yön tuşları)
 function initMobileControls() {
     const parent = canvas.parentElement;
     if (!parent) return;
@@ -983,8 +1333,6 @@ function initMobileControls() {
     });
 
     parent.appendChild(wrap);
-
-    // Pause butonunu wrap'in üstünde tut
     parent.style.position = 'relative';
 }
 
