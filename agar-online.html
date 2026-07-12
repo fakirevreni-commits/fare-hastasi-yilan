@@ -92,7 +92,7 @@
 
         #staminaBar {
             position: fixed;
-            bottom: 52px; left: 50%; transform: translateX(-50%);
+            bottom: 82px; left: 50%; transform: translateX(-50%);
             width: 160px; height: 6px;
             background: rgba(255,255,255,0.1);
             border-radius: 4px;
@@ -117,9 +117,18 @@
         }
         #eCooldownBar {
             position: fixed;
-            bottom: 42px; left: 50%; transform: translateX(-50%);
+            bottom: 74px; left: 50%; transform: translateX(-50%);
             font-size: 0.55rem;
             color: rgba(255,107,53,0.5);
+            z-index: 10;
+            pointer-events: none;
+            text-align: center;
+        }
+        #mergeCooldownBar {
+            position: fixed;
+            bottom: 64px; left: 50%; transform: translateX(-50%);
+            font-size: 0.55rem;
+            color: rgba(78,205,196,0.5);
             z-index: 10;
             pointer-events: none;
             text-align: center;
@@ -368,8 +377,9 @@
 
 <div id="staminaBar"><div class="fill" id="staminaFill"></div><div class="label">KOŞ</div></div>
 <div id="eCooldownBar">🔥 Katon · E</div>
+<div id="mergeCooldownBar">🌀 Birleş · R</div>
 
-<div class="hint">🖱️ Fare • ⬆️ Shift=Koş • 🔥 E=Katon Jutsu • ⚡ Dikenlerden kaç • 🕳️ Kara delik • Boşluk=Bölün</div>
+<div class="hint">🖱️ Fare • ⬆️ Shift=Koş • 🔥 E=Katon • 🌀 R=Birleş • ⚡ Diken • 🕳️ Kara delik • Boşluk=Bölün</div>
 
 <style>
 @keyframes pulseNotif {
@@ -512,6 +522,7 @@ let stamina = 100;
 let shiftHeld = false;
 let eCooldown = 0; // saniye cinsinden kalan bekleme
 let fireballs = [];
+let mergeCooldown = 0;
 const MAX_STAMINA = 100;
 const STAMINA_DRAIN = 16; // saniyede
 const STAMINA_REGEN = 22; // saniyede
@@ -757,35 +768,76 @@ class Fireball {
         this.x = x;
         this.y = y;
         this.angle = angle;
-        this.speed = 6;
-        this.radius = Math.max(8, radius * 0.6);
+        this.speed = 7;
+        this.radius = Math.max(10, radius * 0.8);
         this.life = 1;
         this.alive = true;
-        this.damage = radius * 0.3;
+        this.damage = radius * 0.4;
+        this.trailTimer = 0;
+        this.pulse = 0;
     }
     update() {
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
-        this.life -= 0.008;
+        this.life -= 0.006;
+        this.pulse += 0.15;
+        // Ateş izi parçacıkları
+        this.trailTimer++;
+        if (this.trailTimer % 2 === 0) {
+            for (let i = 0; i < 3; i++) {
+                const a = this.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+                const dist = 5 + Math.random() * 8;
+                const px = this.x + Math.cos(a) * dist;
+                const py = this.y + Math.sin(a) * dist;
+                particles.push(new Particle(px, py, ['#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*3)], 2+Math.random()*4));
+                particles[particles.length-1].vx += Math.cos(a) * 1.5;
+                particles[particles.length-1].vy += Math.sin(a) * 1.5;
+                particles[particles.length-1].decay = 0.03 + Math.random() * 0.03;
+            }
+        }
         if (this.life <= 0 || this.x < 0 || this.x > WORLD_SIZE || this.y < 0 || this.y > WORLD_SIZE) {
             this.alive = false;
+            // Patlama efekti
+            for (let i = 0; i < 25; i++) {
+                const p = new Particle(this.x, this.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 3+Math.random()*6);
+                p.vx = (Math.random() - 0.5) * 10;
+                p.vy = (Math.random() - 0.5) * 10;
+                p.decay = 0.02 + Math.random() * 0.02;
+                particles.push(p);
+            }
+            playKillSound();
         }
     }
     draw(ctx, cam) {
         const sx = this.x - cam.x, sy = this.y - cam.y;
-        if (sx < -50 || sx > W+50 || sy < -50 || sy > H+50) return;
-        const r = this.radius * this.life;
+        if (sx < -80 || sx > W+80 || sy < -80 || sy > H+80) return;
+        const r = this.radius * this.life * (0.9 + Math.sin(this.pulse) * 0.1);
         ctx.save();
-        const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2);
-        g.addColorStop(0, '#fff');
-        g.addColorStop(0.2, '#ff6b35');
-        g.addColorStop(0.6, '#ff1744');
-        g.addColorStop(1, 'rgba(255,0,0,0)');
+        // Dış alev
+        const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*3);
+        g.addColorStop(0, 'rgba(255,255,255,0.3)');
+        g.addColorStop(0.15, 'rgba(255,107,53,0.4)');
+        g.addColorStop(0.4, 'rgba(255,23,68,0.3)');
+        g.addColorStop(0.7, 'rgba(255,145,0,0.1)');
+        g.addColorStop(1, 'transparent');
         ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(sx, sy, r*2, 0, Math.PI*2); ctx.fill();
+        ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 40;
+        ctx.beginPath(); ctx.arc(sx, sy, r*3, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // İç alev
+        const g2 = ctx.createRadialGradient(sx - r*0.2, sy - r*0.2, 0, sx, sy, r*1.5);
+        g2.addColorStop(0, '#fff');
+        g2.addColorStop(0.3, '#ff9100');
+        g2.addColorStop(0.6, '#ff1744');
+        g2.addColorStop(1, 'rgba(180,0,0,0)');
+        ctx.fillStyle = g2;
+        ctx.shadowColor = '#ff6b35'; ctx.shadowBlur = 30;
+        ctx.beginPath(); ctx.arc(sx, sy, r*1.5, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Çekirdek
         ctx.fillStyle = '#fff';
-        ctx.shadowColor = '#ff6b35'; ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+        ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(sx, sy, r*0.4, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
         ctx.restore();
     }
@@ -806,6 +858,7 @@ function initGame() {
     fireballs = [];
     stamina = 100;
     eCooldown = 0;
+    mergeCooldown = 0;
     gameRunning = true;
 
     bots = [];
@@ -968,6 +1021,15 @@ function updateGame() {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
                 piece.radius += Math.max(0.3, f.radius * 0.12);
+                // Yeme efekti
+                if (Math.random() < 0.15) {
+                    for (let j = 0; j < 2; j++) {
+                        const p = new Particle(f.x, f.y, f.color, 1+Math.random()*2);
+                        p.vx = (Math.random()-0.5)*2; p.vy = (Math.random()-0.5)*2;
+                        p.decay = 0.04;
+                        particles.push(p);
+                    }
+                }
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -1161,6 +1223,7 @@ function updateGame() {
 
     // E cooldown
     if (eCooldown > 0) eCooldown -= 16/1000;
+    if (mergeCooldown > 0) mergeCooldown -= 16/1000;
 
     // Fireball güncelle + çarpışma
     for (const fb of fireballs) {
@@ -1172,8 +1235,15 @@ function updateGame() {
             if (Math.sqrt((fb.x-bot.x)**2+(fb.y-bot.y)**2) < fb.radius + bot.radius) {
                 bot.radius -= fb.damage;
                 fb.alive = false;
-                createParticles(fb.x, fb.y, '#ff1744', 10);
-                if (bot.radius < 8) { bot.alive = false; kills++; createParticles(bot.x, bot.y, bot.color, 15); }
+                // Patlama efekti
+                for (let i = 0; i < 20; i++) {
+                    const p = new Particle(fb.x, fb.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 3+Math.random()*5);
+                    p.vx = (Math.random() - 0.5) * 8;
+                    p.vy = (Math.random() - 0.5) * 8;
+                    p.decay = 0.02 + Math.random() * 0.02;
+                    particles.push(p);
+                }
+                if (bot.radius < 8) { bot.alive = false; kills++; for (let i = 0; i < 20; i++) { const p = new Particle(bot.x, bot.y, bot.color, 2+Math.random()*4); p.vx = (Math.random()-0.5)*6; p.vy = (Math.random()-0.5)*6; particles.push(p); } }
                 break;
             }
         }
@@ -1195,6 +1265,10 @@ function updateGame() {
     const eEl = document.getElementById('eCooldownBar');
     if (eCooldown > 0) { eEl.textContent = '🔥 Katon · ' + Math.ceil(eCooldown) + 'sn'; eEl.style.color = 'rgba(255,107,53,0.5)'; }
     else { eEl.textContent = '🔥 Katon · E ✔'; eEl.style.color = 'rgba(78,205,196,0.5)'; }
+    // R merge cooldown
+    const mergeEl = document.getElementById('mergeCooldownBar');
+    if (mergeCooldown > 0) { mergeEl.textContent = '🌀 Birleş · ' + Math.ceil(mergeCooldown) + 'sn'; mergeEl.style.color = 'rgba(78,205,196,0.5)'; }
+    else { mergeEl.textContent = '🌀 Birleş · R ✔'; mergeEl.style.color = 'rgba(78,205,196,0.5)'; }
 
     updateUI();
 
@@ -1508,6 +1582,7 @@ window.addEventListener('resize', () => { W=window.innerWidth; H=window.innerHei
 document.addEventListener('keydown', e => {
     if (e.key === 'Shift') shiftHeld = true;
     if (e.key === 'e' || e.key === 'E') useFireball();
+    if (e.key === 'r' || e.key === 'R') mergeAllPieces();
     if (e.key === ' ') { e.preventDefault(); splitPlayer(); }
 });
 document.addEventListener('keyup', e => {
@@ -1518,35 +1593,87 @@ function useFireball() {
     if (!gameRunning || !player || eCooldown > 0) return;
     const main = playerPieces.find(p => p.alive);
     if (!main || main.radius < 15) return;
-    // En küçük parçayı bul
     let smallest = main;
     let si = 0;
     for (let i = 0; i < playerPieces.length; i++) {
         if (playerPieces[i].alive && playerPieces[i].radius < smallest.radius) { smallest = playerPieces[i]; si = i; }
     }
     if (smallest.radius < 12) return;
-    // Parçayı küçült
     const lostR = smallest.radius * 0.35;
     smallest.radius -= lostR;
     if (smallest.radius < 8) smallest.radius = 8;
-    // Mouse yönüne ateş topu
     const dx = mouseX - W/2, dy = mouseY - H/2;
     const angle = Math.atan2(dy, dx);
     fireballs.push(new Fireball(smallest.x, smallest.y, angle, lostR));
     eCooldown = 12;
-    createParticles(smallest.x, smallest.y, '#ff6b35', 8);
+    // Ateşleme efekti - parçadan çıkan alevler
+    for (let i = 0; i < 20; i++) {
+        const a = angle + (Math.random() - 0.5) * 1.8;
+        const p = new Particle(smallest.x, smallest.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 3+Math.random()*5);
+        p.vx = Math.cos(a) * (3 + Math.random() * 6);
+        p.vy = Math.sin(a) * (3 + Math.random() * 6);
+        p.decay = 0.02 + Math.random() * 0.02;
+        particles.push(p);
+    }
+    // Ekran sarsıntısı efekti
+    for (let i = 0; i < 5; i++) {
+        particles.push(new Particle(smallest.x + (Math.random()-0.5)*20, smallest.y + (Math.random()-0.5)*20, '#fff', 1+Math.random()*2));
+    }
     playKillSound();
-    // 4sn sonra parça geri gelir
     const targetId = smallest.splitGroup;
     setTimeout(() => {
         for (const p of playerPieces) {
             if (p.alive && p.splitGroup === targetId) {
-                p.radius += lostR * 0.8;
-                createParticles(p.x, p.y, '#4ecdc4', 6);
+                p.radius += lostR * 0.85;
+                for (let i = 0; i < 10; i++) {
+                    const pp = new Particle(p.x, p.y, '#4ecdc4', 2+Math.random()*3);
+                    pp.vx = (Math.random() - 0.5) * 4;
+                    pp.vy = (Math.random() - 0.5) * 4;
+                    pp.decay = 0.025;
+                    particles.push(pp);
+                }
                 break;
             }
         }
     }, 4000);
+}
+
+function mergeAllPieces() {
+    if (!gameRunning || mergeCooldown > 0 || playerPieces.filter(p => p.alive).length <= 1) return;
+    const alive = playerPieces.filter(p => p.alive);
+    let totalMass = 0, cx = 0, cy = 0;
+    for (const p of alive) { totalMass += p.mass; cx += p.x * p.mass; cy += p.y * p.mass; }
+    cx /= totalMass; cy /= totalMass;
+    const newR = Math.sqrt(totalMass / Math.PI);
+    // Efekt
+    for (const p of alive) {
+        for (let i = 0; i < 8; i++) {
+            const pp = new Particle(p.x, p.y, '#4ecdc4', 2+Math.random()*4);
+            pp.vx = (Math.random() - 0.5) * 6;
+            pp.vy = (Math.random() - 0.5) * 6;
+            pp.decay = 0.02;
+            particles.push(pp);
+        }
+    }
+    alive[0].x = cx; alive[0].y = cy; alive[0].radius = newR;
+    for (let j = 1; j < alive.length; j++) {
+        const idx = playerPieces.indexOf(alive[j]);
+        if (idx > -1) playerPieces.splice(idx, 1);
+    }
+    player = playerPieces[0];
+    // Merge timer'ları temizle
+    mergeTimers = [];
+    mergeCooldown = 15;
+    playSplitSound();
+    // Işık patlaması
+    for (let i = 0; i < 15; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const p = new Particle(cx, cy, '#4ecdc4', 4+Math.random()*5);
+        p.vx = Math.cos(a) * (2 + Math.random() * 4);
+        p.vy = Math.sin(a) * (2 + Math.random() * 4);
+        p.decay = 0.015;
+        particles.push(p);
+    }
 }
 
 // Skin seçimi
