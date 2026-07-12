@@ -227,6 +227,13 @@
 </head>
 <body>
 
+<div id="startOverlay" style="position:fixed;inset:0;z-index:99999;background:rgba(10,10,26,0.95);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:16px">
+    <div style="font-size:4rem">🔊</div>
+    <div style="color:#4ecdc4;font-size:1.8rem;font-weight:700">Sesi açmak için tıkla</div>
+    <div style="color:#718096;font-size:1rem">Oyuna başlamak için herhangi bir yere tıkla</div>
+    <div style="color:rgba(160,174,192,0.3);font-size:0.8rem;margin-top:10px">🖱️ Fare ile yönlendir • Küçükleri ye, büyüklerden kaç</div>
+</div>
+
 <canvas id="gameCanvas"></canvas>
 <div id="crosshair"></div>
 
@@ -572,20 +579,7 @@ function playLevelUpSound() { MemeAudio.playLevelUpSound(); }
 function playBotDeathSound() { MemeAudio.playBotDeathSound(); }
 function playNarutoSound() { MemeAudio.playNarutoSound(); }
 
-function onFirstInteraction() {
-    if (audioActivated) return;
-    audioActivated = true;
-    MemeAudio.activate();
-    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
-        MemeAudio.playNextSong();
-    }
-    document.removeEventListener('mousedown', onFirstInteraction);
-    document.removeEventListener('keydown', onFirstInteraction);
-    document.removeEventListener('touchstart', onFirstInteraction);
-}
-document.addEventListener('mousedown', onFirstInteraction);
-document.addEventListener('keydown', onFirstInteraction);
-document.addEventListener('touchstart', onFirstInteraction);
+// İlk etkileşim, start overlay üzerinden yapılır
 
 // ========== OYUN MANTIĞI ==========
 class Cell {
@@ -1280,14 +1274,32 @@ document.getElementById('volSlider').addEventListener('input', function() {
     document.getElementById('volLabel').textContent = Math.round(v * 100) + '%';
 });
 
-// Canvas click (ses başlatma için)
+// Canvas click
 canvas.addEventListener('click', () => {
     MemeAudio.activate();
 });
 
-// ========== BAŞLAT ==========
-initGame();
-gameLoop();
+// Başlangıç örtüsü tıklaması
+function startGameAndAudio() {
+    const overlay = document.getElementById('startOverlay');
+    if (!overlay || overlay.style.display === 'none') return;
+    overlay.style.display = 'none';
+    audioActivated = true;
+    MemeAudio.activate();
+    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
+        MemeAudio.playNextSong();
+    }
+    initGame();
+    gameLoop();
+}
+document.getElementById('startOverlay').addEventListener('click', startGameAndAudio);
+document.addEventListener('keydown', function startOnKey(e) {
+    startGameAndAudio();
+    document.removeEventListener('keydown', startOnKey);
+});
+
+// ========== BAŞLAT ========== (örtü tıklanınca başlar)
+// initGame() ve gameLoop() yukarıdaki click handler'ında çağrılır
 
 // Çapraz hareket (crosshair)
 document.addEventListener('mousemove', e => {
