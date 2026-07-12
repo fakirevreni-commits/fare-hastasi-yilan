@@ -303,7 +303,17 @@
             <button class="btn-p" data-song="piano" style="width:100%;background:linear-gradient(135deg,#a855f7,#7c3aed)">🎹 Piyano</button>
             <button class="btn-p" data-song="turkish" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316)">🇹🇷 Türkçe Pop</button>
         </div>
-        <button class="btn-s" id="btnCloseSong" style="width:100%">Kapat</button>
+        <div class="sep"></div>
+        <div style="margin:10px 0">
+            <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:8px">🔗 Özel Müzik (link veya dosya)</div>
+            <input type="text" id="customSongUrl" placeholder="Müzik linki (MP3/OGG)..." style="width:100%;padding:10px 12px;border:2px solid rgba(78,205,196,0.2);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;font-size:0.85rem;text-align:center;outline:none;margin-bottom:8px">
+            <div style="display:flex;gap:8px">
+                <button class="btn-s" id="btnPlayUrl" style="flex:1">▶ Linki Çal</button>
+                <button class="btn-s" id="btnUploadMusic" style="flex:1">📁 Dosya Yükle</button>
+            </div>
+            <input type="file" id="musicFileInput" accept="audio/*" style="display:none">
+        </div>
+        <button class="btn-s" id="btnCloseSong" style="width:100%;margin-top:5px">Kapat</button>
     </div>
 </div>
 
@@ -1335,6 +1345,32 @@ document.querySelectorAll('#songList button').forEach(el => {
 
 document.getElementById('btnCloseSong').addEventListener('click', () => {
     document.getElementById('songModal').classList.remove('active');
+});
+
+// Özel müzik çalma
+let currentAudio = null;
+function stopAudio() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } }
+
+document.getElementById('btnPlayUrl').addEventListener('click', () => {
+    const url = document.getElementById('customSongUrl').value.trim();
+    if (!url) return;
+    stopAudio();
+    currentAudio = new Audio(url);
+    currentAudio.volume = 0.3;
+    currentAudio.play().catch(() => alert('Bu link çalınamadı. Geçerli bir müzik linki olduğundan emin ol.'));
+});
+
+document.getElementById('btnUploadMusic').addEventListener('click', () => {
+    document.getElementById('musicFileInput').click();
+});
+document.getElementById('musicFileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    stopAudio();
+    const url = URL.createObjectURL(file);
+    currentAudio = new Audio(url);
+    currentAudio.volume = 0.3;
+    currentAudio.play();
 });
 
 document.getElementById('btnRestart').addEventListener('click', () => {
