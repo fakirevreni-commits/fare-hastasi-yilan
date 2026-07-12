@@ -996,20 +996,21 @@ function updateGame() {
         blackHole.pulse += 0.04;
         // Oyuncu kara delik yedi
         let eaten = false;
-        for (const piece of playerPieces) {
-            if (!piece.alive || eaten) continue;
-            const dx = piece.x - blackHole.x;
-            const dy = piece.y - blackHole.y;
-            if (dx*dx + dy*dy < (piece.radius + blackHole.radius) * (piece.radius + blackHole.radius)) {
-                const bonus = piece.radius * 1.5 + (MAX_POSSIBLE_RADIUS * 0.1);
-                piece.radius += bonus;
-                totalScore += Math.round(bonus * 5);
-                createParticles(blackHole.x, blackHole.y, '#a855f7', 40);
-                playKillSound();
-                eaten = true;
-                break;
+        try {
+            for (const piece of playerPieces) {
+                if (!piece.alive || eaten) continue;
+                const dx = piece.x - blackHole.x;
+                const dy = piece.y - blackHole.y;
+                if (dx*dx + dy*dy < (piece.radius + blackHole.radius) * (piece.radius + blackHole.radius)) {
+                    piece.radius += 8;
+                    totalScore += 500;
+                    createParticles(blackHole.x, blackHole.y, '#a855f7', 40);
+                    playKillSound();
+                    eaten = true;
+                    break;
+                }
             }
-        }
+        } catch(e) {}
         if (eaten) {
             blackHoleActive = false;
             blackHole = null;
