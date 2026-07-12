@@ -1061,10 +1061,10 @@ function updateUI() {
 function updateLeaderboard() {
     const entries = [];
 
-    // Oyuncu tüm parçaları
-    let playerScore = 0;
-    for (const p of playerPieces) if (p.alive) playerScore += p.radius;
-    entries.push({ name: `👤 ${userName}`, score: Math.round(playerScore * 2.5), isMe: true });
+    // Oyuncu - ana skor (totalScore) kullan
+    let playerTotalR = 0;
+    for (const p of playerPieces) if (p.alive) playerTotalR += p.radius;
+    entries.push({ name: `👤 ${userName}`, score: totalScore, isMe: true });
 
     // Online oyuncular
     for (const [id, op] of Object.entries(onlinePlayers)) {
