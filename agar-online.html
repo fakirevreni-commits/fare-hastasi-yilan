@@ -565,19 +565,22 @@ class Cell {
             }
         }
 
-        // Fotoğraf (oyuncu hücresi için) - daire içinde borderlı
+        // Fotoğraf - kusursuz yuvarlak
         if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
             const pr = this.radius * 0.7;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(sx, sy, pr + 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.fill();
-            ctx.shadowColor = '#4ecdc4'; ctx.shadowBlur = 10;
-            ctx.beginPath();
             ctx.arc(sx, sy, pr, 0, Math.PI * 2);
             ctx.clip();
             ctx.drawImage(userImage, sx - pr, sy - pr, pr * 2, pr * 2);
+            ctx.restore();
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sx, sy, pr, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(78,205,196,0.6)';
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#4ecdc4'; ctx.shadowBlur = 8;
+            ctx.stroke();
             ctx.restore();
         }
 
