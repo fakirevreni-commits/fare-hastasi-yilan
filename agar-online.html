@@ -967,17 +967,23 @@ function updateGame() {
 
     // Kara delik sistemi
     if (!blackHoleActive && Date.now() - blackHoleTimer > BLACK_HOLE_INTERVAL) {
+        // Oyuncunun yakınında belirsin
+        const cx = player ? player.x : WORLD_SIZE/2;
+        const cy = player ? player.y : WORLD_SIZE/2;
         blackHole = {
-            x: WORLD_SIZE/2 + (Math.random()-0.5) * 1000,
-            y: WORLD_SIZE/2 + (Math.random()-0.5) * 1000,
-            radius: 60 + Math.random() * 30,
+            x: cx + (Math.random()-0.5) * 800,
+            y: cy + (Math.random()-0.5) * 800,
+            radius: 50 + Math.random() * 20,
             alive: true,
             pulse: 0
         };
+        // Dünya sınırları içinde kal
+        blackHole.x = Math.max(100, Math.min(WORLD_SIZE-100, blackHole.x));
+        blackHole.y = Math.max(100, Math.min(WORLD_SIZE-100, blackHole.y));
         blackHoleActive = true;
         blackHoleNotification = true;
         blackHoleTimer = Date.now();
-        setTimeout(() => { blackHoleNotification = false; }, 5000);
+        setTimeout(() => { blackHoleNotification = false; }, 6000);
     }
 
     // Bildirim göster/gizle
@@ -991,8 +997,9 @@ function updateGame() {
             if (!piece.alive) continue;
             if (Math.sqrt((piece.x-blackHole.x)**2+(piece.y-blackHole.y)**2) < piece.radius + blackHole.radius) {
                 const bonus = piece.radius * 1.5 + (MAX_POSSIBLE_RADIUS * 0.1);
-                totalScore += Math.round(bonus * 3);
-                createParticles(blackHole.x, blackHole.y, '#a855f7', 30);
+                piece.radius += bonus;
+                totalScore += Math.round(bonus * 5);
+                createParticles(blackHole.x, blackHole.y, '#a855f7', 40);
                 playKillSound();
                 blackHoleActive = false;
                 blackHole = null;
@@ -1000,18 +1007,7 @@ function updateGame() {
                 break;
             }
         }
-        // Bot kara delik yedi
-        for (const bot of bots) {
-            if (!bot.alive) continue;
-            if (Math.sqrt((bot.x-blackHole.x)**2+(bot.y-blackHole.y)**2) < bot.radius + blackHole.radius) {
-                bot.radius += blackHole.radius * 0.5;
-                createParticles(blackHole.x, blackHole.y, '#a855f7', 20);
-                blackHoleActive = false;
-                blackHole = null;
-                blackHoleTimer = Date.now();
-                break;
-            }
-        }
+        // Botlar kara deliği yiyemez
     }
 
     // Bot büyüme sınırı
@@ -1240,11 +1236,27 @@ function draw() {
     // Kara delik
     if (blackHoleActive && blackHole) {
         const sx = blackHole.x - camera.x, sy = blackHole.y - camera.y;
+        // Yön gösterici (ekran dışındaysa)
+        if (sx < -200 || sx > W+200 || sy < -200 || sy > H+200) {
+            const angle = Math.atan2(blackHole.y - camera.y - H/2, blackHole.x - camera.x - W/2);
+            const px = W/2 + Math.cos(angle) * (Math.min(W, H) * 0.35);
+            const py = H/2 + Math.sin(angle) * (Math.min(W, H) * 0.35);
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle);
+            ctx.fillStyle = '#a855f7';
+            ctx.font = '24px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 15;
+            ctx.fillText('🕳️', 0, 0);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
         if (sx > -200 && sx < W+200 && sy > -200 && sy < H+200) {
-            const pulse = Math.sin(blackHole.pulse) * 10;
+            const pulse = Math.sin(blackHole.pulse) * 15;
             const r = blackHole.radius + pulse;
             // Dış halka
-            const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2.5);
+            const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*3);
             g.addColorStop(0, 'rgba(80,0,120,0.15)');
             g.addColorStop(0.5, 'rgba(40,0,80,0.08)');
             g.addColorStop(1, 'transparent');
