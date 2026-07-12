@@ -297,19 +297,33 @@
     </div>
 </div>
 
-<div class="hint">🖱️ Fare ile yönlendir • 🟡 Küçükleri ye • ⚡ Dikenlerden kaç • 🟠 Büyüklerden kaç</div>
+<div id="notifArea" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;text-align:center;display:none">
+    <div style="font-size:2.5rem;font-weight:800;color:#a855f7;text-shadow:0 0 40px rgba(168,85,247,0.6);animation:pulseNotif 0.8s ease infinite">🕳️ KARA DELİK!</div>
+    <div style="font-size:1rem;color:#e2e8f0;margin-top:8px">Haritada bir kara delik belirdi! Onu yiyen büyür!</div>
+</div>
+
+<div class="hint">🖱️ Fare ile yönlendir • 🟡 Küçükleri ye • ⚡ Dikenlerden kaç • 🕳️ Kara delikleri yakala • Boşluk = bölün</div>
+
+<style>
+@keyframes pulseNotif {
+    0%,100% { transform:scale(1); opacity:1; }
+    50% { transform:scale(1.08); opacity:0.8; }
+}
+</style>
 
 <script>
 // ========== AYARLAR ==========
-const WORLD_SIZE = 4000;
-const FOOD_COUNT = 600;
-const BOT_COUNT = 5;
-const INITIAL_RADIUS = 25;
+const WORLD_SIZE = 5000;
+const FOOD_COUNT = 800;
+const BOT_COUNT = 6;
+const INITIAL_RADIUS = 30;
 const VIEWPORT_PADDING = 150;
-const SPIKE_COUNT = 5;
-const SPIKE_BASE_RADIUS = 40;
-const MIN_SPLIT_RADIUS = 15;
-const SPLIT_MERGE_TIME = 4000;
+const SPIKE_COUNT = 8;
+const SPIKE_BASE_RADIUS = 35;
+const MIN_SPLIT_RADIUS = 18;
+const SPLIT_MERGE_TIME = 5000;
+const MAX_POSSIBLE_RADIUS = 200;
+const BLACK_HOLE_INTERVAL = 15000;
 
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas.getContext('2d');
@@ -391,6 +405,11 @@ let roomCode = '';
 let onlinePlayers = {}; // peerId -> {x,y,radius,name,skin,pieces:[]}
 let myPeerId = '';
 let lastStateSend = 0;
+let blackHole = null;
+let blackHoleTimer = 0;
+let blackHoleActive = false;
+let blackHoleNotification = false;
+let totalScore = 0;
 
 // ========== SINIFLAR ==========
 class Cell {
@@ -611,13 +630,18 @@ function initGame() {
         }
     }
 
-    // Dikenler (orta kısımda)
+    // Dikenler - haritaya dağılmış, yan yana değil
     spikes = [];
-    const centerX = WORLD_SIZE/2, centerY = WORLD_SIZE/2;
     for (let i = 0; i < SPIKE_COUNT; i++) {
-        const a = (Math.PI*2*i)/SPIKE_COUNT + Math.random()*0.5;
-        const dist = 100 + Math.random() * 200;
-        spikes.push(new Spike(centerX + Math.cos(a)*dist, centerY + Math.sin(a)*dist));
+        let attempts = 0;
+        let sx, sy, tooClose;
+        do {
+            sx = 500 + Math.random() * (WORLD_SIZE - 1000);
+            sy = 500 + Math.random() * (WORLD_SIZE - 1000);
+            tooClose = spikes.some(s => Math.sqrt((s.x-sx)**2+(s.y-sy)**2) < 300);
+            attempts++;
+        } while (tooClose && attempts < 50);
+        spikes.push(new Spike(sx, sy));
     }
 
     foods = [];
@@ -660,16 +684,16 @@ function splitPlayer() {
 function hitSpike(cell) {
     if (!cell.alive || cell.radius < MIN_SPLIT_RADIUS * 2) return;
     const mass = cell.mass;
-    const count = Math.min(5, Math.floor(cell.radius / MIN_SPLIT_RADIUS));
+    const count = Math.min(5, Math.max(2, Math.floor(cell.radius / (MIN_SPLIT_RADIUS * 1.2))));
     const pieceMass = mass / count;
     if (pieceMass < MIN_SPLIT_RADIUS * MIN_SPLIT_RADIUS * Math.PI) return;
 
     const newPieces = [];
     for (let i = 0; i < count; i++) {
-        const a = (Math.PI*2*i)/count + Math.random()*0.3;
-        const dist = cell.radius + 5;
-        const r = Math.sqrt(pieceMass / Math.PI);
-        const p = new Cell(cell.x + Math.cos(a)*dist, cell.y + Math.sin(a)*dist, Math.max(MIN_SPLIT_RADIUS, r), cell.isPlayer);
+        const a = (Math.PI*2*i)/count + Math.random()*0.4;
+        const dist = cell.radius + 8;
+        const r = Math.max(MIN_SPLIT_RADIUS, Math.sqrt(pieceMass / Math.PI));
+        const p = new Cell(cell.x + Math.cos(a)*dist, cell.y + Math.sin(a)*dist, r, cell.isPlayer);
         p.name = cell.name;
         p.skin = cell.skin;
         p.color = cell.color;
@@ -681,7 +705,6 @@ function hitSpike(cell) {
     playSplitSound();
 
     if (cell.isPlayer) {
-        // Replace this piece with new pieces
         const idx = playerPieces.indexOf(cell);
         if (idx > -1) {
             playerPieces.splice(idx, 1, ...newPieces);
@@ -741,13 +764,13 @@ function updateGame() {
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
 
-    // Yiyecek yeme (tüm parçalar)
+    // Yiyecek yeme (tüm parçalar) - sadece puan, boyut büyümez
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
-                piece.radius += f.radius * 0.04;
+                totalScore += Math.round(f.radius * 3);
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -760,7 +783,7 @@ function updateGame() {
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((bot.x-f.x)**2+(bot.y-f.y)**2) < bot.radius) {
-                bot.radius += f.radius * 0.03;
+                bot.radius += f.radius * 0.02;
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -826,26 +849,27 @@ function updateGame() {
         }
     }
 
-    // Oyuncu vs Bot (tüm parçalar)
+    // Oyuncu vs Bot (tüm parçalar) - rakip yiyince büyür
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         for (const bot of bots) {
             if (!bot.alive) continue;
             if (piece.canEat(bot)) {
-                piece.radius += bot.radius*0.4;
+                const growth = bot.radius * 0.6;
+                piece.radius += growth;
+                totalScore += Math.round(growth * 5);
                 bot.alive = false;
                 kills++;
                 createParticles(bot.x,bot.y,bot.color,15);
                 playKillSound();
                 if (bot.skin === 'naruto') playSong('naruto');
-                setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 4000);
+                setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
             }
             if (bot.canEat(piece)) {
-                bot.radius += piece.radius*0.4;
+                bot.radius += piece.radius*0.5;
                 piece.alive = false;
                 createParticles(piece.x,piece.y,'#fc466b',15);
                 playDeathSound();
-                // Check if all pieces dead
                 if (playerPieces.every(p => !p.alive)) { gameOver(); return; }
                 player = playerPieces.find(p => p.alive);
             }
@@ -884,8 +908,57 @@ function updateGame() {
         }
     }
 
+    // Kara delik sistemi
+    if (!blackHoleActive && Date.now() - blackHoleTimer > BLACK_HOLE_INTERVAL) {
+        blackHole = {
+            x: WORLD_SIZE/2 + (Math.random()-0.5) * 1000,
+            y: WORLD_SIZE/2 + (Math.random()-0.5) * 1000,
+            radius: 60 + Math.random() * 30,
+            alive: true,
+            pulse: 0
+        };
+        blackHoleActive = true;
+        blackHoleNotification = true;
+        blackHoleTimer = Date.now();
+        setTimeout(() => { blackHoleNotification = false; }, 5000);
+    }
+
+    // Bildirim göster/gizle
+    const notif = document.getElementById('notifArea');
+    if (notif) notif.style.display = (blackHoleNotification && blackHoleActive) ? 'block' : 'none';
+
+    if (blackHoleActive && blackHole) {
+        blackHole.pulse += 0.04;
+        // Oyuncu kara delik yedi
+        for (const piece of playerPieces) {
+            if (!piece.alive) continue;
+            if (Math.sqrt((piece.x-blackHole.x)**2+(piece.y-blackHole.y)**2) < piece.radius + blackHole.radius) {
+                const bonus = piece.radius * 1.5 + (MAX_POSSIBLE_RADIUS * 0.1);
+                totalScore += Math.round(bonus * 3);
+                createParticles(blackHole.x, blackHole.y, '#a855f7', 30);
+                playKillSound();
+                blackHoleActive = false;
+                blackHole = null;
+                blackHoleTimer = Date.now();
+                break;
+            }
+        }
+        // Bot kara delik yedi
+        for (const bot of bots) {
+            if (!bot.alive) continue;
+            if (Math.sqrt((bot.x-blackHole.x)**2+(bot.y-blackHole.y)**2) < bot.radius + blackHole.radius) {
+                bot.radius += blackHole.radius * 0.5;
+                createParticles(blackHole.x, blackHole.y, '#a855f7', 20);
+                blackHoleActive = false;
+                blackHole = null;
+                blackHoleTimer = Date.now();
+                break;
+            }
+        }
+    }
+
     // Bot büyüme sınırı
-    for (const bot of bots) { if (bot.radius > 70) bot.radius = 70; }
+    for (const bot of bots) { if (bot.radius > 90) bot.radius = 90; }
 
     // Birleşme
     checkMerge();
@@ -896,8 +969,8 @@ function updateGame() {
     // Skor
     let totalRadius = 0;
     for (const p of playerPieces) if (p.alive) totalRadius += p.radius;
-    const sc = Math.round(totalRadius * 2.5 + kills * 25);
-    document.getElementById('scoreDisplay').textContent = sc.toLocaleString('tr-TR');
+    totalScore = Math.round(totalRadius * 5 + kills * 50);
+    document.getElementById('scoreDisplay').textContent = totalScore.toLocaleString('tr-TR');
 
     updateUI();
 
@@ -909,8 +982,9 @@ function updateGame() {
 
 function gameOver() {
     gameRunning = false;
-    const sc = parseInt(document.getElementById('scoreDisplay').textContent.replace(/\./g,''));
-    document.getElementById('finalScore').textContent = sc.toLocaleString('tr-TR');
+    blackHoleActive = false;
+    blackHole = null;
+    document.getElementById('finalScore').textContent = totalScore.toLocaleString('tr-TR');
     document.getElementById('gameOverBanner').style.display = 'block';
     playDeathSound();
 }
@@ -1105,6 +1179,40 @@ function draw() {
 
     // Dikenler
     for (const s of spikes) s.draw(ctx, camera);
+
+    // Kara delik
+    if (blackHoleActive && blackHole) {
+        const sx = blackHole.x - camera.x, sy = blackHole.y - camera.y;
+        if (sx > -200 && sx < W+200 && sy > -200 && sy < H+200) {
+            const pulse = Math.sin(blackHole.pulse) * 10;
+            const r = blackHole.radius + pulse;
+            // Dış halka
+            const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2.5);
+            g.addColorStop(0, 'rgba(80,0,120,0.15)');
+            g.addColorStop(0.5, 'rgba(40,0,80,0.08)');
+            g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(sx, sy, r*2.5, 0, Math.PI*2); ctx.fill();
+            // Merkez
+            const g2 = ctx.createRadialGradient(sx-r*0.3, sy-r*0.3, 0, sx, sy, r);
+            g2.addColorStop(0, '#a855f7');
+            g2.addColorStop(0.4, '#7c3aed');
+            g2.addColorStop(0.8, '#4c1d95');
+            g2.addColorStop(1, '#1a0a2e');
+            ctx.fillStyle = g2;
+            ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Işık halkası
+            ctx.strokeStyle = `rgba(168,85,247,${0.3+Math.sin(blackHole.pulse)*0.15})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(sx, sy, r*1.2, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(10, r*0.25)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🕳️', sx, sy);
+        }
+    }
 
     // Parçacıklar
     for (const p of particles) p.draw(ctx, camera);
