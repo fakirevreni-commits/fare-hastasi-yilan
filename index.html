@@ -50,8 +50,12 @@
             max-width: 600px;
             height: auto;
             aspect-ratio: 1 / 1;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        canvas:focus { outline: none; border-color: #4ecdc4; box-shadow: 0 0 60px rgba(78,205,196,0.3); }
+        canvas:focus { outline: none; box-shadow: 0 0 40px rgba(78, 205, 196, 0.1), inset 0 0 80px rgba(0,0,0,0.6); }
 
         .sidebar {
             display: flex;
@@ -324,8 +328,8 @@
             <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> hareket &nbsp;|&nbsp;
             <kbd>Boşluk</kbd> duraklat &nbsp;|&nbsp; <kbd>Esc</kbd> menü
         </div>
-        <div style="margin-top:8px;min-height:60px;display:flex;justify-content:center;align-items:center">
-            <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-pub-9362960325147518" data-ad-slot="3962713151"></ins>
+        <div style="margin-top:8px;min-height:50px;display:flex;justify-content:center;align-items:center;pointer-events:none">
+            <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px;pointer-events:auto" data-ad-client="ca-pub-9362960325147518" data-ad-slot="3962713151"></ins>
             <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
         </div>
     </div>
