@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>🐍 Fare Hastası Yılan</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fare Yılan">
+    <meta name="theme-color" content="#0a0a1a">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -930,6 +935,10 @@ renderScores();
 init();
 animLoop();
 canvas.focus();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>

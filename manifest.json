@@ -1,0 +1,17 @@
+{
+  "name": "Fare Hastası Yılan",
+  "short_name": "Fare Yılan",
+  "description": "Fareleri yiyerek büyüyen yılan oyunu - Seviye atla, rekor kır!",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "categories": ["games", "arcade"],
+  "screenshots": [],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
