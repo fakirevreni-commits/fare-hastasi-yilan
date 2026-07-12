@@ -719,6 +719,7 @@ class Food {
 class Spike {
     constructor(x, y) {
         this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
         this.radius = SPIKE_BASE_RADIUS + Math.random() * 15;
         this.spikeLen = this.radius * 0.6;
         this.angle = Math.random() * Math.PI * 2;
@@ -728,6 +729,10 @@ class Spike {
     }
 
     update(dt) {
+        this.x += this.vx; this.y += this.vy;
+        this.vx *= 0.95; this.vy *= 0.95;
+        if (Math.abs(this.vx) < 0.01) this.vx = 0;
+        if (Math.abs(this.vy) < 0.01) this.vy = 0;
         this.foodTimer += dt;
         if (this.foodTimer > 4000 + Math.random() * 3000) {
             this.foodTimer = 0;
@@ -1056,7 +1061,8 @@ function updateGame() {
         stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN * (16/1000));
     }
 
-    const mainPiece = player;
+    // En büyük parçayı kamera takip etsin
+    const mainPiece = playerPieces.reduce((a,b) => (!a.alive || (b.alive && b.radius > a.radius)) ? b : a, playerPieces[0]);
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
 
@@ -1180,18 +1186,16 @@ function updateGame() {
         }
     }
 
-    // Diken çarpışması - küçükse geç, büyükse skora göre bölün
+    // Diken çarpışması - deyince diken yok olur
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
-        for (const spike of spikes) {
-            const dist = piece.distTo(spike);
-            if (dist < piece.radius + spike.radius) {
-                if (piece.radius < spike.radius) {
-                    // Küçükse hiçbir şey olmaz, içinden geçer
-                } else {
-                    // Büyükse skora göre bölün
+        for (let si = spikes.length - 1; si >= 0; si--) {
+            const spike = spikes[si];
+            if (piece.distTo(spike) < piece.radius + spike.radius) {
+                createParticles(spike.x, spike.y, '#ff6b35', 15);
+                spikes.splice(si, 1);
+                if (piece.radius >= spike.radius) {
                     hitSpikeByScore(piece);
-                    createParticles(spike.x, spike.y, '#ff6b35', 10);
                 }
                 break;
             }
@@ -1286,6 +1290,23 @@ function updateGame() {
                     particles.push(p);
                 }
                 if (bot.radius < 8) { bot.alive = false; kills++; for (let i = 0; i < 20; i++) { const p = new Particle(bot.x, bot.y, bot.color, 2+Math.random()*4); p.vx = (Math.random()-0.5)*6; p.vy = (Math.random()-0.5)*6; particles.push(p); } }
+                break;
+            }
+        }
+        // Dikene çarpma - dikeni ittir
+        for (const spike of spikes) {
+            if (Math.sqrt((fb.x-spike.x)**2+(fb.y-spike.y)**2) < fb.radius + spike.radius) {
+                const angle = Math.atan2(spike.y - fb.y, spike.x - fb.x);
+                const force = 8;
+                spike.vx = Math.cos(angle) * force + (Math.random()-0.5)*2;
+                spike.vy = Math.sin(angle) * force + (Math.random()-0.5)*2;
+                for (let i = 0; i < 12; i++) {
+                    const p = new Particle(fb.x, fb.y, ['#fff','#ff6b35','#ff1744','#ff9100'][Math.floor(Math.random()*4)], 2+Math.random()*4);
+                    p.vx = (Math.random()-0.5)*6; p.vy = (Math.random()-0.5)*6;
+                    p.decay = 0.025 + Math.random()*0.02;
+                    particles.push(p);
+                }
+                fb.alive = false;
                 break;
             }
         }
