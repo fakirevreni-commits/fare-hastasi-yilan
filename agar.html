@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🟣 Hücre Savaşı - Agar.io Tarzı</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0f0f2a 0%, #060612 100%);
+            cursor: none;
+            touch-action: none;
+        }
+
+        #crosshair {
+            position: fixed;
+            pointer-events: none;
+            z-index: 5;
+            width: 30px;
+            height: 30px;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.3);
+        }
+        #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+        #crosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+        .ui-overlay {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #scoreboard {
+            top: 15px;
+            left: 15px;
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            line-height: 1.6;
+        }
+        #scoreboard .score { font-size: 2rem; color: #4ecdc4; }
+        #scoreboard .label { font-size: 0.8rem; color: #a0aec0; font-weight: 400; }
+
+        #leaderboard {
+            top: 15px;
+            right: 15px;
+            background: rgba(10,10,26,0.85);
+            border: 1px solid rgba(78,205,196,0.2);
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 180px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            pointer-events: auto;
+        }
+        #leaderboard h3 { color: #4ecdc4; font-size: 0.85rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .lb-entry { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.8rem; color: #e2e8f0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .lb-entry:last-child { border-bottom: none; }
+        .lb-entry .lb-rank { color: #718096; min-width: 20px; }
+        .lb-entry .lb-name { flex: 1; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-entry .lb-score { color: #4ecdc4; font-weight: 600; }
+        .lb-entry.me { background: rgba(78,205,196,0.1); border-radius: 4px; padding: 3px 0; }
+        .lb-entry.me .lb-name { color: #4ecdc4; font-weight: 600; }
+
+        #controls-panel {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            pointer-events: auto;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #controls-panel button {
+            padding: 10px 20px;
+            border: 2px solid rgba(78,205,196,0.3);
+            border-radius: 25px;
+            background: rgba(10,10,26,0.8);
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.2s;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            touch-action: manipulation;
+        }
+        #controls-panel button:hover { border-color: #4ecdc4; background: rgba(78,205,196,0.15); transform: translateY(-2px); }
+        #controls-panel button.primary { background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; border-color: transparent; }
+        #controls-panel button.primary:hover { box-shadow: 0 4px 20px rgba(78,205,196,0.4); }
+
+        #skin-selector {
+            position: fixed;
+            z-index: 20;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,10,26,0.92);
+            border: 1px solid rgba(78,205,196,0.2);
+            border-radius: 16px;
+            padding: 15px 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-width: 90vw;
+            pointer-events: auto;
+        }
+        #skin-selector.open { display: flex; }
+        .skin-option {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid rgba(78,205,196,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .skin-option:hover { border-color: #4ecdc4; transform: scale(1.1); }
+        .skin-option.active { border-color: #4ecdc4; box-shadow: 0 0 20px rgba(78,205,196,0.4); }
+        .skin-option .preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+        .skin-option .skin-label {
+            position: absolute;
+            bottom: -18px;
+            font-size: 0.6rem;
+            color: #718096;
+            white-space: nowrap;
+        }
+
+        #photo-upload {
+            position: fixed;
+            z-index: 20;
+            pointer-events: auto;
+            display: none;
+        }
+        #photo-upload input { display: none; }
+
+        #gameOverBanner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            background: rgba(10,10,26,0.95);
+            border: 3px solid #fc466b;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            min-width: 320px;
+            box-shadow: 0 0 60px rgba(252,70,107,0.2);
+            pointer-events: auto;
+        }
+        #gameOverBanner h2 { font-size: 2rem; margin-bottom: 10px; background: linear-gradient(135deg,#fc466b,#3f5efb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #gameOverBanner p { color: #a0aec0; margin-bottom: 20px; }
+        #gameOverBanner .final-score { font-size: 3rem; font-weight: 800; color: #4ecdc4; margin: 10px 0; }
+        #gameOverBanner button { padding: 14px 40px; border: none; border-radius: 30px; font-size: 1.1rem; font-weight: 700; cursor: pointer; background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; margin: 5px; transition: all 0.2s; }
+        #gameOverBanner button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(78,205,196,0.4); }
+
+        .hint-text {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(160,174,192,0.4);
+            font-size: 0.75rem;
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            #leaderboard { min-width: 130px; padding: 10px; font-size: 0.7rem; }
+            #leaderboard h3 { font-size: 0.7rem; }
+            #scoreboard { font-size: 0.9rem; }
+            #scoreboard .score { font-size: 1.4rem; }
+            #controls-panel button { padding: 8px 14px; font-size: 0.75rem; }
+            #gameOverBanner { padding: 25px; min-width: 280px; }
+            #skin-selector { padding: 10px; gap: 8px; }
+            .skin-option { width: 55px; height: 55px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="crosshair"></div>
+
+<div id="scoreboard" class="ui-overlay">
+    <div class="label">PUAN</div>
+    <div class="score" id="scoreDisplay">0</div>
+    <div class="label" id="killDisplay">Öldürme: 0</div>
+</div>
+
+<div id="leaderboard" class="ui-overlay">
+    <h3>🏆 Liderlik</h3>
+    <div id="lbEntries"></div>
+</div>
+
+<div id="controls-panel" class="ui-overlay">
+    <button id="btnSkin">🎨 Skin Seç</button>
+    <button id="btnPhoto">📷 Fotoğraf Yükle</button>
+    <input type="file" id="photoInput" accept="image/*">
+    <button id="btnRestart" class="primary">↻ Yeniden Başlat</button>
+</div>
+
+<div id="skin-selector">
+    <div class="skin-option active" data-skin="default" title="Varsayılan">
+        <div class="preview" style="background:linear-gradient(135deg,#4ecdc4,#45b7d1)">🐍</div>
+        <span class="skin-label">Normal</span>
+    </div>
+    <div class="skin-option" data-skin="glow" title="Parlak">
+        <div class="preview" style="background:linear-gradient(135deg,#f6d365,#fda085);box-shadow:0 0 20px #f6d365">✨</div>
+        <span class="skin-label">Parlak</span>
+    </div>
+    <div class="skin-option" data-skin="rainbow" title="Gökkuşağı">
+        <div class="preview" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)">🌈</div>
+        <span class="skin-label">Gökkuşağı</span>
+    </div>
+    <div class="skin-option" data-skin="sparkle" title="Işıltılı">
+        <div class="preview" style="background:radial-gradient(circle at 30% 30%,#fff,#a855f7,#7c3aed);box-shadow:0 0 15px #a855f7">⭐</div>
+        <span class="skin-label">Işıltılı</span>
+    </div>
+    <div class="skin-option" data-skin="naruto" title="Naruto">
+        <div class="preview" style="background:radial-gradient(circle at 50% 50%,#ff6b35,#cc3300)">🍥</div>
+        <span class="skin-label">Naruto</span>
+    </div>
+    <div class="skin-option" data-skin="neon" title="Neon">
+        <div class="preview" style="background:linear-gradient(135deg,#00ff88,#00ccff);box-shadow:0 0 20px #00ff88">💚</div>
+        <span class="skin-label">Neon</span>
+    </div>
+    <div class="skin-option" data-skin="cyber" title="Cyber">
+        <div class="preview" style="background:linear-gradient(135deg,#ff00ff,#00ffff);box-shadow:0 0 15px #ff00ff">🤖</div>
+        <span class="skin-label">Cyber</span>
+    </div>
+</div>
+
+<div id="gameOverBanner">
+    <h2>💀 YOK EDİLDİN</h2>
+    <p>Birisi seni yuttu!</p>
+    <div class="final-score" id="finalScore">0</div>
+    <div style="color:#a0aec0;margin-bottom:15px">Final Skorun</div>
+    <button id="btnPlayAgain">Tekrar Oyna</button>
+</div>
+
+<div class="hint-text">🖱️ Fare ile yönlendir • Küçükleri ye, büyüklerden kaç</div>
+
+<script>
+// ========== AYARLAR ==========
+const W = window.innerWidth;
+const H = window.innerHeight;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let canvasW = W;
+let canvasH = H;
+canvas.width = canvasW;
+canvas.height = canvasH;
+
+const WORLD_SIZE = 4000;
+const FOOD_COUNT = 300;
+const BOT_COUNT = 12;
+const INITIAL_RADIUS = 20;
+const VIEWPORT_PADDING = 100;
+
+// ========== DURUM ==========
+let player = null;
+let bots = [];
+let foods = [];
+let particles = [];
+let camera = { x: 0, y: 0 };
+let mouseX = W / 2;
+let mouseY = H / 2;
+let gameRunning = true;
+let kills = 0;
+let score = 0;
+let animId = null;
+let skinName = 'default';
+let userImage = null;
+let userImageLoaded = false;
+let totalFrames = 0;
+let narutoPlaying = false;
+
+// ========== SES SİSTEMİ ==========
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playEatSound() {
+    try {
+        initAudio();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        o.start(audioCtx.currentTime);
+        o.stop(audioCtx.currentTime + 0.15);
+    } catch(e) {}
+}
+
+function playDeathSound() {
+    try {
+        initAudio();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.frequency.setValueAtTime(300, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.5);
+        g.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        o.start(audioCtx.currentTime);
+        o.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+}
+
+function playNarutoSound() {
+    try {
+        initAudio();
+        // Naruto temalı melodi
+        const notes = [262, 330, 392, 523, 392, 523, 659, 523, 392, 330, 262];
+        const dur = [0.15, 0.15, 0.15, 0.3, 0.15, 0.15, 0.3, 0.15, 0.15, 0.15, 0.4];
+        let time = audioCtx.currentTime;
+        notes.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'triangle';
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.setValueAtTime(freq, time);
+            g.gain.setValueAtTime(0.12, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + dur[i]);
+            o.start(time);
+            o.stop(time + dur[i]);
+            time += dur[i];
+        });
+    } catch(e) {}
+}
+
+function playLevelUpSound() {
+    try {
+        initAudio();
+        [523, 659, 784, 1047].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'sine';
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
+            g.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.08);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.2);
+            o.start(audioCtx.currentTime + i * 0.08);
+            o.stop(audioCtx.currentTime + i * 0.08 + 0.2);
+        });
+        narutoPlaying = true;
+        setTimeout(() => narutoPlaying = false, 500);
+    } catch(e) {}
+}
+
+function playBotDeathSound() {
+    try {
+        initAudio();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.frequency.setValueAtTime(600, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        o.start(audioCtx.currentTime);
+        o.stop(audioCtx.currentTime + 0.2);
+    } catch(e) {}
+}
+
+// ========== OYUN MANTIĞI ==========
+class Cell {
+    constructor(x, y, radius, isPlayer = false) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.isPlayer = isPlayer;
+        this.color = `hsl(${Math.random() * 360}, 70%, 55%)`;
+        this.name = '';
+        this.vx = 0;
+        this.vy = 0;
+        this.targetX = x;
+        this.targetY = y;
+        this.alive = true;
+        this.sparkleTimer = Math.random() * 100;
+        this.angle = Math.random() * Math.PI * 2;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.skin = 'default';
+        this.image = null;
+        this.imageLoaded = false;
+    }
+
+    get mass() {
+        return Math.PI * this.radius * this.radius;
+    }
+
+    setMass(m) {
+        this.radius = Math.sqrt(m / Math.PI);
+    }
+
+    distanceTo(other) {
+        return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+    }
+
+    canEat(other) {
+        return this.alive && other.alive && this.radius > other.radius * 1.15 && this.distanceTo(other) < this.radius;
+    }
+
+    draw(ctx, cam) {
+        if (!this.alive) return;
+        const sx = this.x - cam.x;
+        const sy = this.y - cam.y;
+        if (sx + this.radius < -VIEWPORT_PADDING || sx - this.radius > canvasW + VIEWPORT_PADDING ||
+            sy + this.radius < -VIEWPORT_PADDING || sy - this.radius > canvasH + VIEWPORT_PADDING) return;
+
+        const skin = this.skin || 'default';
+
+        // Glow efekti
+        if (skin === 'glow' || skin === 'naruto' || skin === 'neon' || skin === 'cyber') {
+            ctx.save();
+            let glowColor = 'rgba(78,205,196,0.15)';
+            if (skin === 'glow') glowColor = 'rgba(246,211,101,0.2)';
+            else if (skin === 'naruto') glowColor = 'rgba(255,107,53,0.2)';
+            else if (skin === 'neon') glowColor = 'rgba(0,255,136,0.2)';
+            else if (skin === 'cyber') glowColor = 'rgba(255,0,255,0.2)';
+            const gr = ctx.createRadialGradient(sx, sy, 0, sx, sy, this.radius * 2);
+            gr.addColorStop(0, glowColor);
+            gr.addColorStop(1, 'transparent');
+            ctx.fillStyle = gr;
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Arka plan daire
+        ctx.save();
+
+        if (skin === 'rainbow') {
+            const hue = (totalFrames * 2) % 360;
+            const grd = ctx.createRadialGradient(sx - this.radius * 0.3, sy - this.radius * 0.3, 0, sx, sy, this.radius);
+            grd.addColorStop(0, `hsl(${hue}, 100%, 70%)`);
+            grd.addColorStop(0.5, `hsl(${(hue + 120) % 360}, 100%, 60%)`);
+            grd.addColorStop(1, `hsl(${(hue + 240) % 360}, 100%, 50%)`);
+            ctx.fillStyle = grd;
+        } else if (skin === 'sparkle') {
+            const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, this.radius);
+            grd.addColorStop(0, '#fff');
+            grd.addColorStop(0.3, '#a855f7');
+            grd.addColorStop(0.7, '#7c3aed');
+            grd.addColorStop(1, '#581c87');
+            ctx.fillStyle = grd;
+        } else if (skin === 'naruto') {
+            const grd = ctx.createRadialGradient(sx - this.radius * 0.25, sy - this.radius * 0.25, 0, sx, sy, this.radius);
+            grd.addColorStop(0, '#ff8c42');
+            grd.addColorStop(0.5, '#e65100');
+            grd.addColorStop(1, '#bf360c');
+            ctx.fillStyle = grd;
+        } else if (skin === 'neon') {
+            const pulse = Math.sin(totalFrames * 0.05 + this.pulsePhase) * 0.15 + 0.85;
+            const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, this.radius);
+            grd.addColorStop(0, '#00ff88');
+            grd.addColorStop(0.5, `rgba(0,204,255,${pulse})`);
+            grd.addColorStop(1, '#0066aa');
+            ctx.fillStyle = grd;
+        } else if (skin === 'cyber') {
+            const grd = ctx.createRadialGradient(sx - this.radius * 0.2, sy - this.radius * 0.2, 0, sx, sy, this.radius);
+            grd.addColorStop(0, '#ff00ff');
+            grd.addColorStop(0.3, '#8800ff');
+            grd.addColorStop(0.6, '#0088ff');
+            grd.addColorStop(1, '#00ffff');
+            ctx.fillStyle = grd;
+        } else if (skin === 'glow') {
+            const grd = ctx.createRadialGradient(sx - this.radius * 0.2, sy - this.radius * 0.2, 0, sx, sy, this.radius);
+            grd.addColorStop(0, '#fff8e1');
+            grd.addColorStop(0.3, '#f6d365');
+            grd.addColorStop(0.7, '#fda085');
+            grd.addColorStop(1, '#f97316');
+            ctx.fillStyle = grd;
+        } else {
+            ctx.fillStyle = this.color;
+        }
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = skin === 'default' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = Math.max(2, this.radius * 0.04);
+        ctx.stroke();
+
+        // Sparkle efekti (ışıltılı)
+        if (skin === 'sparkle') {
+            for (let i = 0; i < 5; i++) {
+                const a = totalFrames * 0.03 + i * 1.26;
+                const r = this.radius * (0.6 + Math.sin(totalFrames * 0.05 + i) * 0.3);
+                const px = sx + Math.cos(a) * r;
+                const py = sy + Math.sin(a) * r;
+                const sz = 2 + Math.sin(totalFrames * 0.1 + i * 2) * 1.5;
+                ctx.fillStyle = `rgba(255,255,255,${0.4 + Math.sin(totalFrames * 0.08 + i) * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(px, py, Math.max(0.5, sz), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Naruto özel efekt - sharingan dönüşü
+        if (skin === 'naruto' && this.radius > 15) {
+            const r = this.radius;
+            // Konoha sembolü
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.font = `${Math.max(10, r * 0.6)}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🍥', sx, sy - r * 0.05);
+            
+            // Sharingan halkası
+            for (let i = 0; i < 3; i++) {
+                const a = totalFrames * 0.04 + i * 2.094;
+                const hr = r * 0.35;
+                const hx = sx + Math.cos(a) * hr;
+                const hy = sy + Math.sin(a) * hr;
+                ctx.fillStyle = 'rgba(255,0,0,0.5)';
+                ctx.beginPath();
+                ctx.arc(hx, hy, r * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Naruto yazısı (büyük cell'lerde)
+            if (this.radius > 30) {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.font = `bold ${Math.max(8, r * 0.25)}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('NARUTO', sx, sy + r * 0.5);
+            }
+        }
+
+        // Kullanıcı fotoğrafı
+        if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 0.7, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(userImage, sx - this.radius * 0.7, sy - this.radius * 0.7, this.radius * 1.4, this.radius * 1.4);
+            ctx.restore();
+        }
+
+        // İsim
+        if (this.radius > 8) {
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(10, this.radius * 0.35)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 5;
+            ctx.fillText(this.name, sx, sy);
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.restore();
+    }
+}
+
+// ========== YİYECEKLER ==========
+class Food {
+    constructor() {
+        this.x = Math.random() * WORLD_SIZE;
+        this.y = Math.random() * WORLD_SIZE;
+        this.radius = 4 + Math.random() * 3;
+        this.color = `hsl(${Math.random() * 360}, 80%, 65%)`;
+        this.glow = Math.random() * 0.5 + 0.3;
+    }
+
+    draw(ctx, cam) {
+        const sx = this.x - cam.x;
+        const sy = this.y - cam.y;
+        if (sx < -10 || sx > canvasW + 10 || sy < -10 || sy > canvasH + 10) return;
+        
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 5 * this.glow;
+        ctx.beginPath();
+        ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+// ========== PARTICLE ==========
+class Particle {
+    constructor(x, y, color, size) {
+        this.x = x;
+        this.y = y;
+        const a = Math.random() * Math.PI * 2;
+        const s = 1 + Math.random() * 3;
+        this.vx = Math.cos(a) * s;
+        this.vy = Math.sin(a) * s;
+        this.radius = size || (2 + Math.random() * 4);
+        this.color = color || '#4ecdc4';
+        this.life = 1;
+        this.decay = 0.01 + Math.random() * 0.02;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.02;
+        this.life -= this.decay;
+        return this.life > 0;
+    }
+
+    draw(ctx, cam) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x - cam.x, this.y - cam.y, this.radius * this.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ========== BOT AI ==========
+function createBot(i) {
+    const bot = new Cell(
+        Math.random() * WORLD_SIZE,
+        Math.random() * WORLD_SIZE,
+        15 + Math.random() * 20
+    );
+    const names = ['Alpha','Beta','Gamma','Delta','Echo','Fox','Ghost','Hawk','Ice','Jade','King','Lion','Mist','Nova','Odin','Puma','Quake','Raven','Storm','Tiger','Ultra','Venom','Wolf','Xeno','Yeti','Zeus','Cyber','Blaze','Frost','Thunder'];
+    bot.name = names[Math.floor(Math.random() * names.length)];
+    bot.skin = ['default','glow','rainbow','sparkle','neon','cyber'][Math.floor(Math.random() * 6)];
+    bot.targetX = Math.random() * WORLD_SIZE;
+    bot.targetY = Math.random() * WORLD_SIZE;
+    bot.color = `hsl(${Math.random() * 360}, 60%, 50%)`;
+    return bot;
+}
+
+function updateBot(bot) {
+    if (!bot.alive) return;
+
+    // Hedefe doğru git
+    const dx = bot.targetX - bot.x;
+    const dy = bot.targetY - bot.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 50) {
+        bot.targetX = Math.random() * WORLD_SIZE;
+        bot.targetY = Math.random() * WORLD_SIZE;
+    }
+
+    // En yakın yiyeceğe yönel
+    let nearestFood = null;
+    let nearestDist = Infinity;
+    for (const f of foods) {
+        const d = Math.sqrt((f.x - bot.x) ** 2 + (f.y - bot.y) ** 2);
+        if (d < nearestDist) { nearestDist = d; nearestFood = f; }
+    }
+    if (nearestFood && nearestDist < 400) {
+        bot.targetX = nearestFood.x;
+        bot.targetY = nearestFood.y;
+    }
+
+    // Küçük bottan kaç, büyüğe doğru git
+    for (const other of bots) {
+        if (other === bot || !other.alive) continue;
+        const d = bot.distanceTo(other);
+        if (d < 200) {
+            if (other.radius > bot.radius * 1.1) {
+                // Kaç
+                bot.targetX = bot.x + (bot.x - other.x);
+                bot.targetY = bot.y + (bot.y - other.y);
+            } else if (bot.radius > other.radius * 1.15) {
+                // Kovala
+                bot.targetX = other.x;
+                bot.targetY = other.y;
+            }
+        }
+    }
+
+    // Oyuncudan kaç
+    if (player && player.alive) {
+        const pd = bot.distanceTo(player);
+        if (pd < 300) {
+            if (player.radius > bot.radius * 1.1) {
+                bot.targetX = bot.x + (bot.x - player.x) * 2;
+                bot.targetY = bot.y + (bot.y - player.y) * 2;
+            } else if (bot.radius > player.radius * 1.15 && pd < 400) {
+                bot.targetX = player.x;
+                bot.targetY = player.y;
+            }
+        }
+    }
+
+    // Hareket
+    const dx2 = bot.targetX - bot.x;
+    const dy2 = bot.targetY - bot.y;
+    const d2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    if (d2 > 5) {
+        const speed = Math.min(4, 2.5 + (1 - bot.radius / 100) * 2);
+        bot.x += (dx2 / d2) * speed;
+        bot.y += (dy2 / d2) * speed;
+    }
+
+    // Dünya sınırları
+    bot.x = Math.max(bot.radius, Math.min(WORLD_SIZE - bot.radius, bot.x));
+    bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE - bot.radius, bot.y));
+}
+
+// ========== OYUN BAŞLATMA ==========
+function initGame() {
+    player = new Cell(WORLD_SIZE / 2, WORLD_SIZE / 2, INITIAL_RADIUS, true);
+    player.name = 'Ben';
+    player.skin = skinName;
+    player.color = '#4ecdc4';
+    kills = 0;
+    score = 0;
+    gameRunning = true;
+    particles = [];
+
+    // Botlar
+    bots = [];
+    for (let i = 0; i < BOT_COUNT; i++) {
+        const bot = createBot(i);
+        bot.skin = ['default','glow','rainbow','sparkle','neon','cyber'][Math.floor(Math.random() * 6)];
+        bots.push(bot);
+    }
+
+    // Yiyecekler
+    foods = [];
+    for (let i = 0; i < FOOD_COUNT; i++) {
+        foods.push(new Food());
+    }
+
+    document.getElementById('gameOverBanner').style.display = 'none';
+    document.getElementById('scoreDisplay').textContent = '0';
+    document.getElementById('killDisplay').textContent = 'Öldürme: 0';
+    updateLeaderboard();
+}
+
+function spawnFood() {
+    if (foods.length < FOOD_COUNT) {
+        foods.push(new Food());
+    }
+}
+
+// ========== ANA DÖNGÜ ==========
+function update() {
+    if (!gameRunning || !player || !player.alive) return;
+    totalFrames++;
+
+    // Oyuncu hareketi
+    const dx = mouseX - canvasW / 2;
+    const dy = mouseY - canvasH / 2;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 5) {
+        const speed = Math.min(5, 3 + (1 - player.radius / 120) * 3);
+        player.x += (dx / dist) * speed;
+        player.y += (dy / dist) * speed;
+    }
+
+    // Dünya sınırları
+    player.x = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.y));
+
+    // Kamera
+    camera.x = player.x - canvasW / 2;
+    camera.y = player.y - canvasH / 2;
+
+    // Yiyecek yeme
+    for (let i = foods.length - 1; i >= 0; i--) {
+        const f = foods[i];
+        const d = Math.sqrt((player.x - f.x) ** 2 + (player.y - f.y) ** 2);
+        if (d < player.radius) {
+            const growth = f.radius * 0.02;
+            player.radius += growth;
+            score += Math.round(f.radius * 2);
+            createParticles(f.x, f.y, f.color, 5);
+            playEatSound();
+            foods.splice(i, 1);
+            spawnFood();
+        }
+    }
+
+    // Botların yiyecek yemesi
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        for (let i = foods.length - 1; i >= 0; i--) {
+            const f = foods[i];
+            const d = Math.sqrt((bot.x - f.x) ** 2 + (bot.y - f.y) ** 2);
+            if (d < bot.radius) {
+                bot.radius += f.radius * 0.02;
+                foods.splice(i, 1);
+                spawnFood();
+            }
+        }
+    }
+
+    // Bot vs Bot yeme
+    for (const bot of bots) {
+        if (!bot.alive) continue;
+        for (const other of bots) {
+            if (other === bot || !other.alive) continue;
+            if (bot.canEat(other)) {
+                bot.radius += other.radius * 0.5;
+                other.alive = false;
+                createParticles(other.x, other.y, other.color, 15);
+                playBotDeathSound();
+                setTimeout(() => { if (!other.alive) { const newBot = createBot(); bots.push(newBot); } }, 3000);
+            }
+        }
+    }
+
+    // Oyuncu vs bot
+    for (const bot of bots) {
+        if (!bot.alive || !player.alive) continue;
+        if (player.canEat(bot)) {
+            player.radius += bot.radius * 0.5;
+            bot.alive = false;
+            kills++;
+            score += Math.round(bot.radius * 5);
+            createParticles(bot.x, bot.y, bot.color, 20);
+            playBotDeathSound();
+            if (bot.skin === 'naruto') playNarutoSound();
+            setTimeout(() => { if (!bot.alive) { const newBot = createBot(); bots.push(newBot); } }, 3000);
+        }
+        if (bot.canEat(player)) {
+            player.alive = false;
+            createParticles(player.x, player.y, '#fc466b', 30);
+            playDeathSound();
+            gameOver();
+        }
+    }
+
+    // Botların güncellenmesi
+    for (const bot of bots) {
+        updateBot(bot);
+    }
+
+    // Botların büyüme sınırı
+    for (const bot of bots) {
+        if (bot.radius > 80) bot.radius = 80;
+    }
+
+    // Oyuncu büyüme sınırı
+    if (player.radius > 150) player.radius = 150;
+
+    // Particle güncelleme
+    particles = particles.filter(p => p.update());
+
+    // Skor
+    score = Math.round(player.radius * 3 + kills * 20);
+    document.getElementById('scoreDisplay').textContent = score.toLocaleString('tr-TR');
+    document.getElementById('killDisplay').textContent = `Öldürme: ${kills}`;
+
+    updateLeaderboard();
+}
+
+function gameOver() {
+    gameRunning = false;
+    document.getElementById('finalScore').textContent = score.toLocaleString('tr-TR');
+    document.getElementById('gameOverBanner').style.display = 'block';
+}
+
+function createParticles(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+    }
+}
+
+// ========== ÇİZİM ==========
+function draw() {
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    // Arkaplan grid
+    ctx.strokeStyle = 'rgba(78,205,196,0.03)';
+    ctx.lineWidth = 1;
+    const gridSize = 60;
+    const startX = Math.floor(camera.x / gridSize) * gridSize;
+    const startY = Math.floor(camera.y / gridSize) * gridSize;
+    for (let x = startX; x < startX + canvasW + gridSize; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x - camera.x, 0);
+        ctx.lineTo(x - camera.x, canvasH);
+        ctx.stroke();
+    }
+    for (let y = startY; y < startY + canvasH + gridSize; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y - camera.y);
+        ctx.lineTo(canvasW, y - camera.y);
+        ctx.stroke();
+    }
+
+    // Dünya sınırı
+    ctx.strokeStyle = 'rgba(255,50,50,0.3)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-camera.x, -camera.y, WORLD_SIZE, WORLD_SIZE);
+
+    // Yiyecekler
+    for (const f of foods) f.draw(ctx, camera);
+
+    // Parçacıklar
+    for (const p of particles) p.draw(ctx, camera);
+
+    // Botlar
+    for (const bot of bots) bot.draw(ctx, camera);
+
+    // Oyuncu
+    if (player && player.alive) player.draw(ctx, camera);
+
+    // Koordinatlar
+    if (player) {
+        ctx.fillStyle = 'rgba(160,174,192,0.3)';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`X:${Math.round(player.x)} Y:${Math.round(player.y)}`, 15, canvasH - 15);
+    }
+}
+
+function updateLeaderboard() {
+    const entries = [];
+
+    if (player && player.alive) {
+        entries.push({ name: '👤 Ben (' + player.name + ')', score: score, isMe: true });
+    }
+
+    for (const bot of bots) {
+        if (bot.alive) {
+            const skinEmoji = bot.skin === 'naruto' ? '🍥' : bot.skin === 'glow' ? '✨' : bot.skin === 'rainbow' ? '🌈' : bot.skin === 'sparkle' ? '⭐' : bot.skin === 'neon' ? '💚' : bot.skin === 'cyber' ? '🤖' : '🔵';
+            entries.push({ name: `${skinEmoji} ${bot.name}`, score: Math.round(bot.radius * 3), isMe: false });
+        }
+    }
+
+    entries.sort((a, b) => b.score - a.score);
+    const topEntries = entries.slice(0, 10);
+
+    const el = document.getElementById('lbEntries');
+    el.innerHTML = topEntries.map((e, i) => `
+        <div class="lb-entry ${e.isMe ? 'me' : ''}">
+            <span class="lb-rank">${i + 1}</span>
+            <span class="lb-name">${e.name}</span>
+            <span class="lb-score">${e.score.toLocaleString('tr-TR')}</span>
+        </div>
+    `).join('');
+}
+
+function gameLoop() {
+    update();
+    draw();
+    animId = requestAnimationFrame(gameLoop);
+}
+
+// ========== OLAY DİNLEYİCİLER ==========
+// Mouse
+canvas.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+canvas.addEventListener('mouseenter', () => {
+    document.getElementById('crosshair').style.display = 'block';
+});
+
+canvas.addEventListener('mouseleave', () => {
+    document.getElementById('crosshair').style.display = 'none';
+});
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    mouseX = t.clientX;
+    mouseY = t.clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    mouseX = t.clientX;
+    mouseY = t.clientY;
+}, { passive: false });
+
+// Pencere yeniden boyutlandırma
+window.addEventListener('resize', () => {
+    canvasW = window.innerWidth;
+    canvasH = window.innerHeight;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+});
+
+// Skin seçimi
+document.querySelectorAll('.skin-option').forEach(el => {
+    el.addEventListener('click', () => {
+        document.querySelectorAll('.skin-option').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        skinName = el.dataset.skin;
+        if (player) player.skin = skinName;
+        if (skinName === 'naruto') { playNarutoSound(); }
+        document.getElementById('skin-selector').classList.remove('open');
+    });
+});
+
+// Skin butonu
+document.getElementById('btnSkin').addEventListener('click', () => {
+    document.getElementById('skin-selector').classList.toggle('open');
+});
+
+// Fotoğraf yükleme
+document.getElementById('btnPhoto').addEventListener('click', () => {
+    document.getElementById('photoInput').click();
+});
+
+document.getElementById('photoInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            userImage = img;
+            userImageLoaded = true;
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// Yeniden başlat
+document.getElementById('btnRestart').addEventListener('click', () => {
+    initGame();
+});
+
+document.getElementById('btnPlayAgain').addEventListener('click', () => {
+    initGame();
+});
+
+// Canvas click (ses başlatma için)
+canvas.addEventListener('click', () => {
+    initAudio();
+});
+
+// ========== BAŞLAT ==========
+initGame();
+gameLoop();
+
+// Çapraz hareket (crosshair)
+document.addEventListener('mousemove', e => {
+    const ch = document.getElementById('crosshair');
+    ch.style.left = e.clientX + 'px';
+    ch.style.top = e.clientY + 'px';
+});
+</script>
+</body>
+</html>
