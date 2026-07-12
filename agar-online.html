@@ -669,9 +669,9 @@ class Cell {
             }
         }
 
-        // Fotoğraf - kusursuz yuvarlak
+        // Fotoğraf - kusursuz yuvarlak (imlecin tamamını kaplar)
         if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
-            const pr = this.radius * 0.7;
+            const pr = this.radius;
             ctx.save();
             ctx.beginPath();
             ctx.arc(sx, sy, pr, 0, Math.PI * 2);
