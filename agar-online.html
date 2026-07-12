@@ -394,7 +394,7 @@
 
 <script>
 // ========== AYARLAR ==========
-const WORLD_SIZE = 5000;
+const WORLD_SIZE = 8000;
 const FOOD_COUNT = 800;
 const BOT_COUNT = 6;
 const INITIAL_RADIUS = 30;
@@ -617,6 +617,14 @@ const CHARACTERS = {
     chogath: { name: '👹 Cho\'Gath', cost: 1000, desc: 'E: Canı senden az olanı yut, fazladan büyü', color: '#9c27b0' },
     octane: { name: '⚡ Octane', cost: 1500, desc: 'E: %15 can harca, 3sn hızlan (iğne sesi)', color: '#ff1744' }
 };
+
+// ========== DARALAN BÖLGE (BATTLE ROYALE) ==========
+let zoneX = WORLD_SIZE/2, zoneY = WORLD_SIZE/2, zoneRadius = WORLD_SIZE * 0.65;
+let zoneTargetRadius = zoneRadius;
+let zoneShrinkTimer = 0;
+const ZONE_SHRINK_INTERVAL = 30000; // her 30 saniyede bir daral
+const ZONE_MIN_RADIUS = 300;
+const ZONE_DAMAGE = 0.15; // saniyede kaybedilen radius
 
 // ========== STAMİNA & JUTSU ==========
 let stamina = 100;
@@ -955,6 +963,11 @@ function initGame() {
     mergeTimers = [];
     survivalFrames = 0;
     octaneBoost = 0;
+    zoneX = WORLD_SIZE/2;
+    zoneY = WORLD_SIZE/2;
+    zoneRadius = WORLD_SIZE * 0.65;
+    zoneTargetRadius = zoneRadius;
+    zoneShrinkTimer = 0;
     const c = new Cell(WORLD_SIZE/2, WORLD_SIZE/2, INITIAL_RADIUS, true);
     c.name = userName;
     c.skin = skinName;
@@ -1382,6 +1395,47 @@ function updateGame() {
         }
     }
 
+    // Daralan bölge (battle royale)
+    if (gameRunning) {
+        zoneShrinkTimer += 16;
+        if (zoneShrinkTimer > ZONE_SHRINK_INTERVAL && zoneRadius > ZONE_MIN_RADIUS) {
+            zoneShrinkTimer = 0;
+            zoneTargetRadius = Math.max(ZONE_MIN_RADIUS, zoneRadius - 300);
+            showNotification('⚡ BÖLGE DARALIYOR!');
+            playSplitSound();
+        }
+        // Zone'u hedefe doğru yumuşak daralt
+        if (zoneRadius > zoneTargetRadius) {
+            zoneRadius = Math.max(zoneTargetRadius, zoneRadius - 0.5);
+        }
+        // Dışarıdaki oyunculara hasar
+        for (const piece of playerPieces) {
+            if (!piece.alive) continue;
+            const d = Math.sqrt((piece.x - zoneX)**2 + (piece.y - zoneY)**2);
+            if (d > zoneRadius) {
+                piece.radius = Math.max(4, piece.radius - ZONE_DAMAGE);
+                // Hasar efekti
+                if (totalFrames % 15 === 0) {
+                    for (let i = 0; i < 3; i++) {
+                        const p = new Particle(piece.x+(Math.random()-0.5)*piece.radius, piece.y+(Math.random()-0.5)*piece.radius, '#ff4444', 2+Math.random()*3);
+                        p.vx = (Math.random()-0.5)*3; p.vy = (Math.random()-0.5)*3; p.decay = 0.03;
+                        particles.push(p);
+                    }
+                }
+                if (piece.radius <= 4) { piece.alive = false; }
+            }
+        }
+        // Dışarıdaki botlara hasar
+        for (const bot of bots) {
+            if (!bot.alive) continue;
+            const d = Math.sqrt((bot.x - zoneX)**2 + (bot.y - zoneY)**2);
+            if (d > zoneRadius) {
+                bot.radius = Math.max(4, bot.radius - ZONE_DAMAGE * 0.5);
+                if (bot.radius <= 4) { bot.alive = false; }
+            }
+        }
+    }
+
     // Bot büyüme sınırı
     for (const bot of bots) { if (bot.radius > 90) bot.radius = 90; }
 
@@ -1681,6 +1735,38 @@ function draw() {
     ctx.strokeStyle = 'rgba(255,50,50,0.2)';
     ctx.lineWidth = 2;
     ctx.strokeRect(-camera.x, -camera.y, WORLD_SIZE, WORLD_SIZE);
+
+    // Daralan bölge - dışını kırmızı sis kapla
+    const zoneSx = zoneX - camera.x, zoneSy = zoneY - camera.y;
+    if (zoneRadius < WORLD_SIZE * 0.8) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-camera.x-200, -camera.y-200, WORLD_SIZE+400, WORLD_SIZE+400);
+        ctx.arc(zoneSx, zoneSy, zoneRadius, 0, Math.PI * 2, true);
+        ctx.fillStyle = 'rgba(220,30,30,0.07)';
+        ctx.fill();
+        ctx.restore();
+    }
+    // Zone çemberi (glow)
+    ctx.save();
+    ctx.shadowColor = '#82dcff';
+    ctx.shadowBlur = 25;
+    ctx.beginPath();
+    ctx.arc(zoneSx, zoneSy, zoneRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(130,220,255,${0.35 + Math.sin(Date.now()*0.002)*0.12})`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    if (zoneRadius > ZONE_MIN_RADIUS) {
+        ctx.save();
+        ctx.fillStyle = `rgba(130,220,255,${0.2 + Math.sin(Date.now()*0.003)*0.08})`;
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('⚡ DARALAN BÖLGE', zoneSx, zoneSy - zoneRadius - 6);
+        ctx.restore();
+    }
 
     // Yiyecekler
     for (const f of foods) f.draw(ctx, camera);
