@@ -299,13 +299,17 @@
     <div class="modal-box">
         <h2>🎵 Şarkı Seç</h2>
         <p style="font-size:0.8rem">YouTube'dan Naruto opening ve popüler şarkılar</p>
-        <div id="songList" style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
-            <button class="btn-p" data-yt="dlFA0Zq1k2A" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300)">🍥 Naruto - Silhouette (KANA-BOON)</button>
-            <button class="btn-p" data-yt="2upuBiEiXDk" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7)">🐦 Naruto - Blue Bird</button>
-            <button class="btn-p" data-yt="_GOZDXq7I-I" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316)">🇹🇷 Tarkan - Yolla</button>
-            <button class="btn-p" data-yt="X3Wv0Y72GrI" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b)">🎤 Aleyna Tilki - Sen Olsan Bari</button>
-            <button class="btn-p" data-yt="LJ9FpMXJmwY" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2)">🎵 Tarkan - Ölürüm Sana</button>
-            <button class="btn-p" data-yt="NAHRpEqgcL4" style="width:100%;background:linear-gradient(135deg,#4caf50,#388e3c)">💫 Tarkan - Kuzu Kuzu</button>
+        <div id="songList" style="display:flex;flex-direction:column;gap:5px;margin:10px 0;max-height:280px;overflow-y:auto">
+            <button class="btn-p" data-yt="84OMZRpoOLQ" style="width:100%;background:linear-gradient(135deg,#ff6b35,#e65100);font-size:0.85rem;padding:8px">🍥 Naruto OP 1 - ROCKS (Hound Dog)</button>
+            <button class="btn-p" data-yt="dlFA0Zq1k2A" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300);font-size:0.85rem;padding:8px">🍥 Naruto - Silhouette (KANA-BOON)</button>
+            <button class="btn-p" data-yt="2upuBiEiXDk" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);font-size:0.85rem;padding:8px">🐦 Naruto - Blue Bird</button>
+            <button class="btn-p" data-yt="RiQrbSuLrsU" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2);font-size:0.85rem;padding:8px">🌸 Naruto OP 2 - Haruka Kanata</button>
+            <button class="btn-p" data-yt="eZ3P0VOdgIo" style="width:100%;background:linear-gradient(135deg,#ff1744,#d50000);font-size:0.85rem;padding:8px">⚔️ Naruto Main Theme (Epic)</button>
+            <button class="btn-p" data-yt="_GOZDXq7I-I" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316);font-size:0.85rem;padding:8px">🇹🇷 Tarkan - Yolla</button>
+            <button class="btn-p" data-yt="LJ9FpMXJmwY" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2);font-size:0.85rem;padding:8px">🎵 Tarkan - Ölürüm Sana</button>
+            <button class="btn-p" data-yt="NAHRpEqgcL4" style="width:100%;background:linear-gradient(135deg,#4caf50,#388e3c);font-size:0.85rem;padding:8px">💫 Tarkan - Kuzu Kuzu</button>
+            <button class="btn-p" data-yt="X3Wv0Y72GrI" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b);font-size:0.85rem;padding:8px">🎤 Aleyna Tilki - Sen Olsan Bari</button>
+            <button class="btn-p" data-yt="cpp69ghR1IM" style="width:100%;background:linear-gradient(135deg,#ff8f00,#ff6f00);font-size:0.85rem;padding:8px">⭐ Tarkan - Şımarık</button>
             <button class="btn-s" data-action="stop" style="width:100%">⏹ Durdur</button>
         </div>
         <div class="sep"></div>
@@ -561,13 +565,19 @@ class Cell {
             }
         }
 
-        // Fotoğraf (oyuncu hücresi için)
+        // Fotoğraf (oyuncu hücresi için) - daire içinde borderlı
         if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
+            const pr = this.radius * 0.7;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 0.65, 0, Math.PI * 2);
+            ctx.arc(sx, sy, pr + 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fill();
+            ctx.shadowColor = '#4ecdc4'; ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx, sy, pr, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(userImage, sx - this.radius * 0.65, sy - this.radius * 0.65, this.radius * 1.3, this.radius * 1.3);
+            ctx.drawImage(userImage, sx - pr, sy - pr, pr * 2, pr * 2);
             ctx.restore();
         }
 
@@ -831,14 +841,15 @@ function updateGame() {
     if (!gameRunning || !player) return;
     totalFrames++;
 
-    // Oyuncu hareketi (tüm parçalar)
+    // Oyuncu hareketi (tüm parçalar) - daha hassas ve hızlı
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         const dx = mouseX - W/2;
         const dy = mouseY - H/2;
         const dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > 5) {
-            const speed = Math.min(3.5, 2.2 + (1 - piece.radius/140) * 2);
+        if (dist > 2) {
+            const baseSpeed = 4.5 - (piece.radius / 180) * 2.5;
+            const speed = Math.max(1.5, Math.min(5, baseSpeed));
             piece.x += (dx/dist) * speed;
             piece.y += (dy/dist) * speed;
         }
@@ -1327,6 +1338,27 @@ function draw() {
     // Oyuncu parçaları
     for (const piece of playerPieces) {
         if (piece.alive) piece.draw(ctx, camera);
+    }
+
+    // Hedef imleci (mouse yönünü gösterir)
+    if (gameRunning && player) {
+        const dx = mouseX - W/2, dy = mouseY - H/2;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist > 20) {
+            const angle = Math.atan2(dy, dx);
+            const tx = player.x + Math.cos(angle) * player.radius * 1.6 - camera.x;
+            const ty = player.y + Math.sin(angle) * player.radius * 1.6 - camera.y;
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 6]);
+            ctx.beginPath(); ctx.arc(tx, ty, 8, 0, Math.PI*2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(tx-5, ty); ctx.lineTo(tx+5, ty); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(tx, ty-5); ctx.lineTo(tx, ty+5); ctx.stroke();
+            ctx.restore();
+        }
     }
 }
 
