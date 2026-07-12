@@ -285,6 +285,8 @@
                 <div class="sk-btn" data-skin="naruto" style="width:50px;height:50px;border-radius:50%;border:3px solid rgba(78,205,196,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:radial-gradient(circle at 50% 50%,#ff6b35,#cc3300);box-shadow:0 0 8px #ff6b35">🍥</div>
             </div>
         </div>
+        <button class="btn-s" id="btnUploadPhoto">📷 Fotoğraf Yükle</button>
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
         <button class="btn-s" id="btnPlayOffline">💻 Tek Oyunculu Oyna</button>
     </div>
 </div>
@@ -418,6 +420,8 @@ let blackHoleTimer = 0;
 let blackHoleActive = false;
 let blackHoleNotification = false;
 let totalScore = 0;
+let userImage = null;
+let userImageLoaded = false;
 
 // ========== SINIFLAR ==========
 class Cell {
@@ -510,6 +514,16 @@ class Cell {
                 ctx.beginPath(); ctx.arc(sx+Math.cos(a)*r, sy+Math.sin(a)*r, 1.5+Math.sin(totalFrames*0.08+i), 0, Math.PI*2);
                 ctx.fill();
             }
+        }
+
+        // Fotoğraf (oyuncu hücresi için)
+        if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 0.65, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(userImage, sx - this.radius * 0.65, sy - this.radius * 0.65, this.radius * 1.3, this.radius * 1.3);
+            ctx.restore();
         }
 
         // İsim
@@ -1329,6 +1343,22 @@ document.getElementById('btnRestart').addEventListener('click', () => {
 document.getElementById('btnPlayAgain').addEventListener('click', () => {
     document.getElementById('gameOverBanner').style.display = 'none';
     if (isHost || !peer) { initGame(); }
+});
+
+// Fotoğraf yükleme
+document.getElementById('btnUploadPhoto').addEventListener('click', () => {
+    document.getElementById('photoInput').click();
+});
+document.getElementById('photoInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => { userImage = img; userImageLoaded = true; };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
 });
 
 // Online butonları
