@@ -823,7 +823,7 @@ function updateGame() {
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
-                piece.radius += f.radius * 0.02;
+                piece.radius += Math.max(0.5, f.radius * 0.15);
                 totalScore += Math.round(f.radius * 5);
                 foods.splice(i,1);
                 spawnFood();
@@ -837,7 +837,7 @@ function updateGame() {
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((bot.x-f.x)**2+(bot.y-f.y)**2) < bot.radius) {
-                bot.radius += f.radius * 0.02;
+                bot.radius += Math.max(0.5, f.radius * 0.15);
                 foods.splice(i,1);
                 spawnFood();
             }
