@@ -364,7 +364,26 @@ const MemeAudio = {
             this.masterGain = this.ctx.createGain();
             this.masterGain.gain.value = 0.7;
             this.masterGain.connect(this.ctx.destination);
+            this._setupAutoResume();
         } catch(e) {}
+    },
+
+    _setupAutoResume() {
+        const resume = () => {
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        };
+        document.addEventListener('click', resume, { once: true });
+        document.addEventListener('keydown', resume, { once: true });
+        document.addEventListener('touchstart', resume, { once: true });
+    },
+
+    ensure() {
+        if (!this.ctx) this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
     },
 
     setVolume(v) {
@@ -372,6 +391,7 @@ const MemeAudio = {
     },
 
     playBruh() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -398,6 +418,7 @@ const MemeAudio = {
     },
 
     playVineBoom() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -422,6 +443,7 @@ const MemeAudio = {
     },
 
     playMetalPipe() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -447,6 +469,7 @@ const MemeAudio = {
     },
 
     playAirhorn() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -472,6 +495,7 @@ const MemeAudio = {
     },
 
     playEmotionalDamage() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -924,10 +948,7 @@ function initGame() {
     document.getElementById('scoreDisplay').textContent = '0';
     document.getElementById('killDisplay').textContent = 'Öldürme: 0';
     updateLeaderboard();
-    if (!MemeAudio.ctx) MemeAudio.init();
-    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
-        MemeAudio.playNextSong();
-    }
+    MemeAudio.ensure();
 }
 
 function spawnFood() {
@@ -1243,7 +1264,7 @@ document.getElementById('volSlider').addEventListener('input', function() {
 
 // Canvas click (ses başlatma için)
 canvas.addEventListener('click', () => {
-    if (!MemeAudio.ctx) MemeAudio.init();
+    MemeAudio.ensure();
 });
 
 // ========== BAŞLAT ==========

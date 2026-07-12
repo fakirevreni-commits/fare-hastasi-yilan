@@ -561,7 +561,27 @@ const MemeAudio = {
             this.musicGain = this.ctx.createGain();
             this.musicGain.gain.value = 0.5;
             this.musicGain.connect(this.masterGain);
+
+            this._setupAutoResume();
         } catch(e) {}
+    },
+
+    _setupAutoResume() {
+        const resume = () => {
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        };
+        document.addEventListener('click', resume, { once: true });
+        document.addEventListener('keydown', resume, { once: true });
+        document.addEventListener('touchstart', resume, { once: true });
+    },
+
+    ensure() {
+        if (!this.ctx) this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
     },
 
     setVolume(v) {
@@ -571,6 +591,7 @@ const MemeAudio = {
 
     // Procedural meme sound: BRUH - low frequency wobble
     playBruh() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -603,6 +624,7 @@ const MemeAudio = {
 
     // Procedural meme sound: VINE BOOM - sub bass hit
     playVineBoom() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -633,6 +655,7 @@ const MemeAudio = {
 
     // Procedural meme sound: METAL PIPE - metallic resonance
     playMetalPipe() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -683,6 +706,7 @@ const MemeAudio = {
 
     // Procedural meme sound: AIRHORN - frequency sweep
     playAirhorn() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -715,6 +739,7 @@ const MemeAudio = {
 
     // Procedural meme sound: EMOTIONAL DAMAGE - ascending tone
     playEmotionalDamage() {
+        this.ensure();
         if (!this.ctx || !this.sfxEnabled) return;
         try {
             const now = this.ctx.currentTime;
@@ -1030,16 +1055,13 @@ function setDir(d) {
 }
 
 function startGame() {
-    if (!MemeAudio.ctx) { MemeAudio.init(); }
+    MemeAudio.ensure();
     if (over) { init(); }
     if (running && !paused) return;
     running = true; paused = false;
     if (!loop) loop = setInterval(step, speed);
     canvas.focus();
     document.getElementById('btnStart').textContent = '▶ DEVAM ET';
-    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
-        MemeAudio.playNextSong();
-    }
 }
 
 function togglePause() {
