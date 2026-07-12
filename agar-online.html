@@ -90,6 +90,41 @@
             text-align: center;
         }
 
+        #staminaBar {
+            position: fixed;
+            bottom: 52px; left: 50%; transform: translateX(-50%);
+            width: 160px; height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            z-index: 10;
+            pointer-events: none;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        #staminaBar .fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff6b35, #4ecdc4);
+            border-radius: 4px;
+            transition: width 0.1s;
+        }
+        #staminaBar .label {
+            position: absolute;
+            top: -14px; left: 50%; transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.4);
+            white-space: nowrap;
+        }
+        #eCooldownBar {
+            position: fixed;
+            bottom: 42px; left: 50%; transform: translateX(-50%);
+            font-size: 0.55rem;
+            color: rgba(255,107,53,0.5);
+            z-index: 10;
+            pointer-events: none;
+            text-align: center;
+        }
+
         /* Modal */
         .modal {
             position: fixed; top:0;left:0;width:100%;height:100%;
@@ -331,7 +366,10 @@
     <div style="font-size:1rem;color:#e2e8f0;margin-top:8px">Haritada bir kara delik belirdi! Onu yiyen büyür!</div>
 </div>
 
-<div class="hint">🖱️ Fare ile yönlendir • 🟡 Küçükleri ye • ⚡ Dikenlerden kaç • 🕳️ Kara delikleri yakala • Boşluk = bölün</div>
+<div id="staminaBar"><div class="fill" id="staminaFill"></div><div class="label">KOŞ</div></div>
+<div id="eCooldownBar">🔥 Katon · E</div>
+
+<div class="hint">🖱️ Fare • ⬆️ Shift=Koş • 🔥 E=Katon Jutsu • ⚡ Dikenlerden kaç • 🕳️ Kara delik • Boşluk=Bölün</div>
 
 <style>
 @keyframes pulseNotif {
@@ -468,6 +506,15 @@ let blackHoleNotification = false;
 let totalScore = 0;
 let userImage = null;
 let userImageLoaded = false;
+
+// ========== STAMİNA & JUTSU ==========
+let stamina = 100;
+let shiftHeld = false;
+let eCooldown = 0; // saniye cinsinden kalan bekleme
+let fireballs = [];
+const MAX_STAMINA = 100;
+const STAMINA_DRAIN = 16; // saniyede
+const STAMINA_REGEN = 22; // saniyede
 
 // ========== BOT İSİMLERİ (TÜRKÇE) ==========
 const TURKISH_NAMES = ['Alper','Burak','Can','Deniz','Efe','Fırat','Göktuğ','Hakan','Ilgaz','Jale','Kaan','Levent','Mert','Nazlı','Orhan','Pelin','Reşat','Selin','Tuğçe','Uğur','Volkan','Yeliz','Zeynep','Ahmet','Ayşe','Mehmet','Fatma','Ali','Veli','Selim','Ceren','Elif','Onur','Berk','Çağrı','Duru','Ekin','Gizem','Hande','Işık','Kerem','Merve','Ozan','Pınar','Serkan','Tolga','Ufuk','Yavuz']; 
@@ -704,6 +751,46 @@ class Particle {
     }
 }
 
+// ========== FIREBALL (Katon Goukakyu no Jutsu) ==========
+class Fireball {
+    constructor(x, y, angle, radius) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = 6;
+        this.radius = Math.max(8, radius * 0.6);
+        this.life = 1;
+        this.alive = true;
+        this.damage = radius * 0.3;
+    }
+    update() {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.life -= 0.008;
+        if (this.life <= 0 || this.x < 0 || this.x > WORLD_SIZE || this.y < 0 || this.y > WORLD_SIZE) {
+            this.alive = false;
+        }
+    }
+    draw(ctx, cam) {
+        const sx = this.x - cam.x, sy = this.y - cam.y;
+        if (sx < -50 || sx > W+50 || sy < -50 || sy > H+50) return;
+        const r = this.radius * this.life;
+        ctx.save();
+        const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2);
+        g.addColorStop(0, '#fff');
+        g.addColorStop(0.2, '#ff6b35');
+        g.addColorStop(0.6, '#ff1744');
+        g.addColorStop(1, 'rgba(255,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(sx, sy, r*2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#ff6b35'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+}
+
 // ========== OYUN MANTIĞI ==========
 function initGame() {
     playerPieces = [];
@@ -716,6 +803,9 @@ function initGame() {
     player = c;
     kills = 0;
     particles = [];
+    fireballs = [];
+    stamina = 100;
+    eCooldown = 0;
     gameRunning = true;
 
     bots = [];
@@ -844,21 +934,27 @@ function updateGame() {
     if (!gameRunning || !player) return;
     totalFrames++;
 
-    // Oyuncu hareketi (tüm parçalar) - daha hassas ve hızlı
+    // Oyuncu hareketi - Shift basılıysa stamina harca, hızlan
+    const isSprinting = shiftHeld && stamina > 0 && gameRunning;
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         const dx = mouseX - W/2;
         const dy = mouseY - H/2;
         const dist = Math.sqrt(dx*dx+dy*dy);
         if (dist > 2) {
-            const baseSpeed = 4.5 - (piece.radius / 180) * 2.5;
-            const speed = Math.max(1.5, Math.min(5, baseSpeed));
+            const baseSpeed = isSprinting ? 7 - (piece.radius / 180) * 3 : 4.5 - (piece.radius / 180) * 2.5;
+            const speed = Math.max(1.5, Math.min(isSprinting ? 8 : 5, baseSpeed));
             piece.x += (dx/dist) * speed;
             piece.y += (dy/dist) * speed;
         }
-        // Sınırlar
         piece.x = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.x));
         piece.y = Math.max(piece.radius, Math.min(WORLD_SIZE-piece.radius, piece.y));
+    }
+    // Sprint stamina
+    if (shiftHeld && stamina > 0 && gameRunning) {
+        stamina = Math.max(0, stamina - STAMINA_DRAIN * (16/1000));
+    } else {
+        stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN * (16/1000));
     }
 
     const mainPiece = player;
@@ -1063,6 +1159,27 @@ function updateGame() {
     // Birleşme
     checkMerge();
 
+    // E cooldown
+    if (eCooldown > 0) eCooldown -= 16/1000;
+
+    // Fireball güncelle + çarpışma
+    for (const fb of fireballs) {
+        if (!fb.alive) continue;
+        fb.update();
+        // Botlara çarpma
+        for (const bot of bots) {
+            if (!bot.alive) continue;
+            if (Math.sqrt((fb.x-bot.x)**2+(fb.y-bot.y)**2) < fb.radius + bot.radius) {
+                bot.radius -= fb.damage;
+                fb.alive = false;
+                createParticles(fb.x, fb.y, '#ff1744', 10);
+                if (bot.radius < 8) { bot.alive = false; kills++; createParticles(bot.x, bot.y, bot.color, 15); }
+                break;
+            }
+        }
+    }
+    fireballs = fireballs.filter(fb => fb.alive);
+
     // Parçacıklar
     particles = particles.filter(p => p.update());
 
@@ -1071,6 +1188,13 @@ function updateGame() {
     for (const p of playerPieces) if (p.alive) totalMass += Math.PI * p.radius * p.radius;
     totalScore = Math.round(totalMass / 10);
     document.getElementById('scoreDisplay').textContent = totalScore.toLocaleString('tr-TR');
+
+    // Stamina bar
+    document.getElementById('staminaFill').style.width = (stamina / MAX_STAMINA * 100) + '%';
+    // E cooldown
+    const eEl = document.getElementById('eCooldownBar');
+    if (eCooldown > 0) { eEl.textContent = '🔥 Katon · ' + Math.ceil(eCooldown) + 'sn'; eEl.style.color = 'rgba(255,107,53,0.5)'; }
+    else { eEl.textContent = '🔥 Katon · E ✔'; eEl.style.color = 'rgba(78,205,196,0.5)'; }
 
     updateUI();
 
@@ -1316,6 +1440,9 @@ function draw() {
     // Parçacıklar
     for (const p of particles) p.draw(ctx, camera);
 
+    // Fireball'lar
+    for (const fb of fireballs) if (fb.alive) fb.draw(ctx, camera);
+
     // Online oyuncular
     for (const [id, op] of Object.entries(onlinePlayers)) {
         if (!op.alive && op.alive !== undefined) continue;
@@ -1376,6 +1503,51 @@ canvas.addEventListener('mousemove', e => { mouseX=e.clientX; mouseY=e.clientY; 
 canvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.touches[0]; mouseX=t.clientX; mouseY=t.clientY; }, {passive:false});
 canvas.addEventListener('touchmove', e => { e.preventDefault(); const t=e.touches[0]; mouseX=t.clientX; mouseY=t.clientY; }, {passive:false});
 window.addEventListener('resize', () => { W=window.innerWidth; H=window.innerHeight; canvas.width=W; canvas.height=H; });
+
+// Shift basılı tutma (koşma)
+document.addEventListener('keydown', e => {
+    if (e.key === 'Shift') shiftHeld = true;
+    if (e.key === 'e' || e.key === 'E') useFireball();
+    if (e.key === ' ') { e.preventDefault(); splitPlayer(); }
+});
+document.addEventListener('keyup', e => {
+    if (e.key === 'Shift') shiftHeld = false;
+});
+
+function useFireball() {
+    if (!gameRunning || !player || eCooldown > 0) return;
+    const main = playerPieces.find(p => p.alive);
+    if (!main || main.radius < 15) return;
+    // En küçük parçayı bul
+    let smallest = main;
+    let si = 0;
+    for (let i = 0; i < playerPieces.length; i++) {
+        if (playerPieces[i].alive && playerPieces[i].radius < smallest.radius) { smallest = playerPieces[i]; si = i; }
+    }
+    if (smallest.radius < 12) return;
+    // Parçayı küçült
+    const lostR = smallest.radius * 0.35;
+    smallest.radius -= lostR;
+    if (smallest.radius < 8) smallest.radius = 8;
+    // Mouse yönüne ateş topu
+    const dx = mouseX - W/2, dy = mouseY - H/2;
+    const angle = Math.atan2(dy, dx);
+    fireballs.push(new Fireball(smallest.x, smallest.y, angle, lostR));
+    eCooldown = 12;
+    createParticles(smallest.x, smallest.y, '#ff6b35', 8);
+    playKillSound();
+    // 4sn sonra parça geri gelir
+    const targetId = smallest.splitGroup;
+    setTimeout(() => {
+        for (const p of playerPieces) {
+            if (p.alive && p.splitGroup === targetId) {
+                p.radius += lostR * 0.8;
+                createParticles(p.x, p.y, '#4ecdc4', 6);
+                break;
+            }
+        }
+    }, 4000);
+}
 
 // Skin seçimi
 document.querySelectorAll('.sk-btn').forEach(el => {
@@ -1485,12 +1657,7 @@ document.getElementById('btnPlayOffline').addEventListener('click', () => {
     document.getElementById('statusBadge').classList.remove('online');
     initGame();
 });
-
-// Boşluk ile bölünme
-document.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Space') { e.preventDefault(); splitPlayer(); }
-});
-
+ 
 // Canvas click
 canvas.addEventListener('click', () => { initAudio(); });
 
