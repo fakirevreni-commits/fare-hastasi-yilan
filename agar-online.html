@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>🟣 baba.io - Hücre Savaşı</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -269,7 +268,6 @@
 <body>
 
 <canvas id="gameCanvas"></canvas>
-<div id="ytPlayer" style="display:none"></div>
 <div id="musicStatus" style="position:fixed;bottom:105px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;color:rgba(78,205,196,0.5);pointer-events:none;text-align:center"></div>
 
 <div id="ui">
@@ -344,24 +342,20 @@
         <h2>🎵 Şarkı Seç</h2>
         <p style="font-size:0.8rem">YouTube'dan Naruto opening ve popüler şarkılar</p>
         <div id="songList" style="display:flex;flex-direction:column;gap:5px;margin:10px 0;max-height:280px;overflow-y:auto">
-            <button class="btn-p" data-yt="84OMZRpoOLQ" style="width:100%;background:linear-gradient(135deg,#ff6b35,#e65100);font-size:0.85rem;padding:8px">🍥 Naruto OP 1 - ROCKS (Hound Dog)</button>
-            <button class="btn-p" data-yt="dlFA0Zq1k2A" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300);font-size:0.85rem;padding:8px">🍥 Naruto - Silhouette (KANA-BOON)</button>
-            <button class="btn-p" data-yt="2upuBiEiXDk" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);font-size:0.85rem;padding:8px">🐦 Naruto - Blue Bird</button>
-            <button class="btn-p" data-yt="RiQrbSuLrsU" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2);font-size:0.85rem;padding:8px">🌸 Naruto OP 2 - Haruka Kanata</button>
-            <button class="btn-p" data-yt="eZ3P0VOdgIo" style="width:100%;background:linear-gradient(135deg,#ff1744,#d50000);font-size:0.85rem;padding:8px">⚔️ Naruto Main Theme (Epic)</button>
-            <button class="btn-p" data-yt="_GOZDXq7I-I" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316);font-size:0.85rem;padding:8px">🇹🇷 Tarkan - Yolla</button>
-            <button class="btn-p" data-yt="LJ9FpMXJmwY" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2);font-size:0.85rem;padding:8px">🎵 Tarkan - Ölürüm Sana</button>
-            <button class="btn-p" data-yt="NAHRpEqgcL4" style="width:100%;background:linear-gradient(135deg,#4caf50,#388e3c);font-size:0.85rem;padding:8px">💫 Tarkan - Kuzu Kuzu</button>
-            <button class="btn-p" data-yt="X3Wv0Y72GrI" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b);font-size:0.85rem;padding:8px">🎤 Aleyna Tilki - Sen Olsan Bari</button>
-            <button class="btn-p" data-yt="cpp69ghR1IM" style="width:100%;background:linear-gradient(135deg,#ff8f00,#ff6f00);font-size:0.85rem;padding:8px">⭐ Tarkan - Şımarık</button>
+            <button class="btn-p" data-song="naruto1" style="width:100%;background:linear-gradient(135deg,#ff6b35,#e65100);font-size:0.85rem;padding:8px">🍥 Naruto OP 1 - ROCKS</button>
+            <button class="btn-p" data-song="silhouette" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300);font-size:0.85rem;padding:8px">🍥 Naruto - Silhouette</button>
+            <button class="btn-p" data-song="bluebird" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);font-size:0.85rem;padding:8px">🐦 Naruto - Blue Bird</button>
+            <button class="btn-p" data-song="narutoMain" style="width:100%;background:linear-gradient(135deg,#ff1744,#d50000);font-size:0.85rem;padding:8px">⚔️ Naruto Main Theme</button>
+            <button class="btn-p" data-song="tarkan" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316);font-size:0.85rem;padding:8px">🇹🇷 Tarkan - Yolla</button>
+            <button class="btn-p" data-song="turkish" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b);font-size:0.85rem;padding:8px">🎤 Türkçe Pop Melodi</button>
             <button class="btn-s" data-action="stop" style="width:100%">⏹ Durdur</button>
         </div>
         <div class="sep"></div>
         <div style="margin:8px 0">
-            <div style="color:#a0aec0;font-size:0.75rem;margin-bottom:6px">🔗 Özel YouTube linki veya MP3 dosyası</div>
-            <input type="text" id="customSongUrl" placeholder="YouTube linki..." style="width:100%;padding:10px 12px;border:2px solid rgba(78,205,196,0.2);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;font-size:0.85rem;text-align:center;outline:none;margin-bottom:6px">
+            <div style="color:#a0aec0;font-size:0.75rem;margin-bottom:6px">🔗 MP3 linki yapıştır (Myt Müzik, MPC Müzik İndir, vb.)</div>
+            <input type="text" id="customSongUrl" placeholder="MP3 linkini yapıştır..." style="width:100%;padding:10px 12px;border:2px solid rgba(78,205,196,0.2);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;font-size:0.85rem;text-align:center;outline:none;margin-bottom:6px">
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn-s" id="btnPlayUrl" style="flex:1">▶ YouTube Linki Çal</button>
+                <button class="btn-s" id="btnPlayUrl" style="flex:1">▶ Linki Çal</button>
                 <button class="btn-s" id="btnUploadMusic" style="flex:1">📁 MP3 Yükle</button>
             </div>
             <input type="file" id="musicFileInput" accept="audio/*" style="display:none">
@@ -427,51 +421,103 @@ function playNote(freq, dur, type = 'sine', vol = 0.1, delay = 0) {
     } catch(e) {}
 }
 
-// ========== YOUTUBE MÜZİK SİSTEMİ ==========
-let ytPlayer = null;
-let ytReady = false;
+// ========== MÜZİK SİSTEMİ (Web Audio API ile sentez) ==========
+let currentSongInterval = null;
 let currentSongName = '';
 
-function onYouTubeIframeAPIReady() {
-    ytPlayer = new YT.Player('ytPlayer', {
-        height: '0', width: '0',
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
-        events: {
-            onReady: () => { ytReady = true; },
-            onStateChange: e => {
-                if (e.data === YT.PlayerState.ENDED) {
-                    document.getElementById('musicStatus').textContent = '';
-                }
-            }
-        }
-    });
-}
-
-function playYTVideo(videoId) {
-    if (!ytReady || !ytPlayer) { alert('YouTube yükleniyor, biraz bekle...'); return; }
+function stopSong() {
+    if (currentSongInterval) { clearInterval(currentSongInterval); currentSongInterval = null; }
     stopAudio();
-    stopYTAudio();
-    try {
-        ytPlayer.loadVideoById(videoId);
-        ytPlayer.setVolume(30);
-        ytPlayer.playVideo();
-        currentSongName = videoId;
-        document.getElementById('musicStatus').textContent = '🎵 YouTube çalıyor...';
-    } catch(e) { alert('Video oynatılamadı.'); }
-}
-
-function playYoutubeUrl(url) {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (match) { playYTVideo(match[1]); return true; }
-    return false;
-}
-
-function stopYTAudio() {
-    try { if (ytPlayer && ytReady) ytPlayer.stopVideo(); } catch(e){}
     document.getElementById('musicStatus').textContent = '';
 }
 
-// Web Audio API - sadece efekt sesleri için
+const SONGS = {
+    naruto1: {
+        name: 'Naruto OP 1 - ROCKS',
+        notes: [
+            [330,0.2,'square'],[370,0.2,'square'],[392,0.3,'square'],[330,0.15,'square'],[370,0.15,'square'],
+            [392,0.3,'square'],[440,0.2,'square'],[494,0.2,'square'],[523,0.4,'square'],[494,0.15,'square'],
+            [523,0.15,'square'],[587,0.3,'square'],[523,0.2,'square'],[494,0.2,'square'],[440,0.4,'square'],
+            [392,0.2,'square'],[440,0.2,'square'],[494,0.3,'square'],[523,0.2,'square'],[587,0.2,'square'],
+            [659,0.4,'square'],[587,0.15,'square'],[659,0.15,'square'],[587,0.2,'square'],[523,0.2,'square'],
+            [494,0.4,'square'],[440,0.2,'square'],[494,0.2,'square'],[523,0.4,'square']
+        ]
+    },
+    silhouette: {
+        name: 'Naruto - Silhouette',
+        notes: [
+            [392,0.15,'triangle'],[494,0.15,'triangle'],[523,0.2,'triangle'],[587,0.15,'triangle'],[659,0.2,'triangle'],
+            [523,0.15,'triangle'],[587,0.15,'triangle'],[659,0.25,'triangle'],[784,0.3,'triangle'],[659,0.15,'triangle'],
+            [784,0.15,'triangle'],[659,0.2,'triangle'],[587,0.2,'triangle'],[523,0.3,'triangle'],[494,0.15,'triangle'],
+            [523,0.15,'triangle'],[587,0.2,'triangle'],[523,0.15,'triangle'],[494,0.15,'triangle'],[440,0.3,'triangle'],
+            [392,0.2,'triangle'],[494,0.15,'triangle'],[523,0.2,'triangle'],[587,0.15,'triangle'],[659,0.3,'triangle'],
+            [784,0.15,'triangle'],[659,0.15,'triangle'],[784,0.2,'triangle'],[880,0.4,'triangle']
+        ]
+    },
+    bluebird: {
+        name: 'Naruto - Blue Bird',
+        notes: [
+            [523,0.2,'triangle'],[659,0.2,'triangle'],[784,0.3,'triangle'],[784,0.15,'triangle'],[880,0.15,'triangle'],
+            [784,0.2,'triangle'],[659,0.2,'triangle'],[523,0.3,'triangle'],[659,0.2,'triangle'],[784,0.2,'triangle'],
+            [1047,0.3,'triangle'],[784,0.15,'triangle'],[659,0.15,'triangle'],[784,0.2,'triangle'],[659,0.2,'triangle'],
+            [523,0.4,'triangle'],[587,0.2,'triangle'],[659,0.2,'triangle'],[784,0.3,'triangle'],[659,0.15,'triangle'],
+            [784,0.15,'triangle'],[880,0.2,'triangle'],[1047,0.3,'triangle'],[880,0.15,'triangle'],[784,0.15,'triangle'],
+            [880,0.2,'triangle'],[784,0.2,'triangle'],[659,0.4,'triangle']
+        ]
+    },
+    narutoMain: {
+        name: 'Naruto Main Theme',
+        notes: [
+            [262,0.3,'sine'],[330,0.3,'sine'],[392,0.4,'sine'],[330,0.2,'sine'],[392,0.2,'sine'],
+            [523,0.5,'sine'],[392,0.2,'sine'],[523,0.2,'sine'],[659,0.5,'sine'],[523,0.2,'sine'],
+            [659,0.2,'sine'],[784,0.4,'sine'],[659,0.2,'sine'],[784,0.2,'sine'],[1047,0.6,'sine'],
+            [784,0.3,'sine'],[659,0.3,'sine'],[523,0.4,'sine'],[392,0.3,'sine'],[523,0.3,'sine'],
+            [659,0.5,'sine'],[784,0.3,'sine'],[1047,0.4,'sine'],[784,0.3,'sine'],[1047,0.3,'sine'],
+            [784,0.4,'sine'],[659,0.4,'sine'],[523,0.6,'sine']
+        ]
+    },
+    tarkan: {
+        name: 'Tarkan - Yolla',
+        notes: [
+            [440,0.2,'triangle'],[494,0.2,'triangle'],[523,0.3,'triangle'],[494,0.15,'triangle'],[523,0.15,'triangle'],
+            [587,0.3,'triangle'],[523,0.2,'triangle'],[494,0.2,'triangle'],[440,0.3,'triangle'],[392,0.2,'triangle'],
+            [440,0.2,'triangle'],[494,0.3,'triangle'],[523,0.2,'triangle'],[587,0.2,'triangle'],[659,0.4,'triangle'],
+            [587,0.2,'triangle'],[659,0.2,'triangle'],[587,0.3,'triangle'],[523,0.2,'triangle'],[494,0.2,'triangle'],
+            [523,0.4,'triangle'],[440,0.2,'triangle'],[494,0.2,'triangle'],[523,0.3,'triangle'],[587,0.2,'triangle'],
+            [659,0.2,'triangle'],[784,0.5,'triangle']
+        ]
+    },
+    turkish: {
+        name: '🇹🇷 Türkçe Pop',
+        notes: [
+            [392,0.15,'sine'],[440,0.15,'sine'],[494,0.2,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],
+            [523,0.15,'sine'],[494,0.15,'sine'],[440,0.2,'sine'],[392,0.15,'sine'],[440,0.15,'sine'],
+            [494,0.2,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],[659,0.15,'sine'],[587,0.15,'sine'],
+            [523,0.2,'sine'],[494,0.15,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],[659,0.15,'sine'],
+            [784,0.3,'sine'],[659,0.15,'sine'],[587,0.15,'sine'],[523,0.2,'sine'],[494,0.2,'sine'],
+            [440,0.3,'sine']
+        ]
+    }
+};
+
+function playSong(name) {
+    const song = SONGS[name];
+    if (!song) return;
+    stopSong();
+    currentSongName = song.name;
+    document.getElementById('musicStatus').textContent = '🎵 ' + song.name;
+    let index = 0;
+    function playNext() {
+        if (index >= song.notes.length) index = 0;
+        const [freq, dur, type] = song.notes[index];
+        playNote(freq, dur, type, 0.12);
+        index++;
+        currentSongInterval = setTimeout(playNext, dur * 1000 + 80);
+    }
+    playNext();
+}
+
+// Web Audio API - efekt sesleri
 function playEatSound() {
     playNote(500 + Math.random() * 200, 0.1, 'sine', 0.08);
 }
@@ -1120,7 +1166,7 @@ function updateGame() {
                 kills++;
                 createParticles(bot.x,bot.y,bot.color,15);
                 playKillSound();
-                if (bot.skin === 'naruto') playYTVideo('dlFA0Zq1k2A');
+                if (bot.skin === 'naruto') playSong('naruto1');
                 setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
             }
             if (bot.canEat(piece)) {
@@ -1679,7 +1725,7 @@ document.querySelectorAll('.sk-btn').forEach(el => {
         el.classList.add('active');
         skinName = el.dataset.skin;
         for (const p of playerPieces) if (p.alive) p.skin = skinName;
-        if (skinName === 'naruto') playYTVideo('dlFA0Zq1k2A');
+        if (skinName === 'naruto') playSong('naruto1');
         document.getElementById('skinPanel').classList.remove('open');
     });
 });
@@ -1696,10 +1742,10 @@ document.getElementById('btnSong').addEventListener('click', () => {
 
 document.querySelectorAll('#songList button').forEach(el => {
     el.addEventListener('click', () => {
-        const yt = el.dataset.yt;
+        const song = el.dataset.song;
         const action = el.dataset.action;
-        if (action === 'stop') { stopYTAudio(); document.getElementById('musicStatus').textContent = ''; }
-        else if (yt) { playYTVideo(yt); }
+        if (action === 'stop') { stopSong(); document.getElementById('musicStatus').textContent = ''; }
+        else if (song) { playSong(song); }
     });
 });
 
@@ -1709,19 +1755,17 @@ document.getElementById('btnCloseSong').addEventListener('click', () => {
 
 // Özel müzik çalma
 let currentAudio = null;
-function stopAudio() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } stopYTAudio(); }
+function stopAudio() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } }
 
 document.getElementById('btnPlayUrl').addEventListener('click', () => {
     const url = document.getElementById('customSongUrl').value.trim();
     if (!url) return;
-    // Önce YouTube linki mi kontrol et
-    if (playYoutubeUrl(url)) return;
-    // Değilse direkt audio olarak dene
-    stopYTAudio();
+    stopSong();
     stopAudio();
     currentAudio = new Audio(url);
     currentAudio.volume = 0.3;
-    currentAudio.play().catch(() => alert('Bu link çalınamadı. Geçerli bir YouTube veya MP3 linki girin.'));
+    currentAudio.play().catch(() => alert('Bu link çalınamadı. Geçerli bir MP3 linki girin.'));
+    document.getElementById('musicStatus').textContent = '🔗 Harici müzik çalıyor...';
 });
 
 document.getElementById('btnUploadMusic').addEventListener('click', () => {
