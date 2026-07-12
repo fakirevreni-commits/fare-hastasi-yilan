@@ -817,13 +817,14 @@ function updateGame() {
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
 
-    // Yiyecek yeme (tüm parçalar) - sadece puan, boyut büyümez
+    // Yiyecek yeme (tüm parçalar) - az miktar büyütür, bol puan verir
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
-                totalScore += Math.round(f.radius * 3);
+                piece.radius += f.radius * 0.02;
+                totalScore += Math.round(f.radius * 5);
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -1020,10 +1021,11 @@ function updateGame() {
     // Parçacıklar
     particles = particles.filter(p => p.update());
 
-    // Skor
+    // Skor - biriken toplam skor
     let totalRadius = 0;
     for (const p of playerPieces) if (p.alive) totalRadius += p.radius;
-    totalScore = Math.round(totalRadius * 5 + kills * 50);
+    // totalScore zaten yiyeceklerden birikiyor, radius ve kill bonusu ekle
+    totalScore = Math.max(totalScore, Math.round(totalRadius * 5 + kills * 50));
     document.getElementById('scoreDisplay').textContent = totalScore.toLocaleString('tr-TR');
 
     updateUI();
