@@ -46,6 +46,10 @@
             display: block;
             cursor: pointer;
             touch-action: none;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            aspect-ratio: 1 / 1;
         }
         canvas:focus { outline: none; border-color: #4ecdc4; box-shadow: 0 0 60px rgba(78,205,196,0.3); }
 
@@ -922,12 +926,16 @@ document.getElementById('menuQuit').addEventListener('click', () => { menuOverla
 // Seviye atlama
 document.getElementById('btnCont').addEventListener('click', () => { levelUpOverlay.classList.remove('active'); paused=false; canvas.focus(); });
 
-// Canvas focus
-canvas.addEventListener('click', () => canvas.focus());
+// Canvas click & touch - oyun başlat
+canvas.addEventListener('click', () => { canvas.focus(); if (!running || over) startGame(); });
 
 // Dokunmatik kaydırma
 let tx=0, ty=0;
-canvas.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+canvas.addEventListener('touchstart', e => {
+    tx = e.touches[0].clientX;
+    ty = e.touches[0].clientY;
+    if (!running || over) startGame();
+}, {passive:true});
 canvas.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
     if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx)>25) setDir({x:dx>0?1:-1,y:0}); }
@@ -939,6 +947,7 @@ highScore = loadScores().length ? loadScores()[0].score : 0;
 renderScores();
 init();
 animLoop();
+setTimeout(startGame, 100);
 canvas.focus();
 
 if ('serviceWorker' in navigator) {
