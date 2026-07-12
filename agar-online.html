@@ -343,7 +343,7 @@ const SPIKE_BASE_RADIUS = 35;
 const MIN_SPLIT_RADIUS = 18;
 const SPLIT_MERGE_TIME = 5000;
 const MAX_POSSIBLE_RADIUS = 200;
-const BLACK_HOLE_INTERVAL = 15000;
+const BLACK_HOLE_INTERVAL = 120000;
 
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas.getContext('2d');
@@ -966,20 +966,22 @@ function updateGame() {
     }
 
     // Kara delik sistemi
-    if (!blackHoleActive && Date.now() - blackHoleTimer > BLACK_HOLE_INTERVAL) {
-        // Oyuncunun yakınında belirsin
-        const cx = player ? player.x : WORLD_SIZE/2;
-        const cy = player ? player.y : WORLD_SIZE/2;
-        blackHole = {
-            x: cx + (Math.random()-0.5) * 800,
-            y: cy + (Math.random()-0.5) * 800,
-            radius: 50 + Math.random() * 20,
-            alive: true,
-            pulse: 0
-        };
-        // Dünya sınırları içinde kal
-        blackHole.x = Math.max(100, Math.min(WORLD_SIZE-100, blackHole.x));
-        blackHole.y = Math.max(100, Math.min(WORLD_SIZE-100, blackHole.y));
+    if (!blackHoleActive && !blackHole && Date.now() - blackHoleTimer > BLACK_HOLE_INTERVAL) {
+        // Oyuncudan olabildiğince uzak bir konum seç
+        let bhx, bhy;
+        if (player) {
+            const angles = [0, Math.PI/2, Math.PI, Math.PI*1.5];
+            const a = angles[Math.floor(Math.random() * 4)];
+            const dist = 1500 + Math.random() * 800;
+            bhx = player.x + Math.cos(a) * dist;
+            bhy = player.y + Math.sin(a) * dist;
+        } else {
+            bhx = Math.random() * WORLD_SIZE;
+            bhy = Math.random() * WORLD_SIZE;
+        }
+        bhx = Math.max(100, Math.min(WORLD_SIZE-100, bhx));
+        bhy = Math.max(100, Math.min(WORLD_SIZE-100, bhy));
+        blackHole = { x: bhx, y: bhy, radius: 50 + Math.random() * 20, pulse: 0 };
         blackHoleActive = true;
         blackHoleNotification = true;
         blackHoleTimer = Date.now();
@@ -988,26 +990,31 @@ function updateGame() {
 
     // Bildirim göster/gizle
     const notif = document.getElementById('notifArea');
-    if (notif) notif.style.display = (blackHoleNotification && blackHoleActive) ? 'block' : 'none';
+    if (notif) notif.style.display = (blackHoleNotification && blackHoleActive && blackHole) ? 'block' : 'none';
 
     if (blackHoleActive && blackHole) {
         blackHole.pulse += 0.04;
         // Oyuncu kara delik yedi
+        let eaten = false;
         for (const piece of playerPieces) {
-            if (!piece.alive) continue;
-            if (Math.sqrt((piece.x-blackHole.x)**2+(piece.y-blackHole.y)**2) < piece.radius + blackHole.radius) {
+            if (!piece.alive || eaten) continue;
+            const dx = piece.x - blackHole.x;
+            const dy = piece.y - blackHole.y;
+            if (dx*dx + dy*dy < (piece.radius + blackHole.radius) * (piece.radius + blackHole.radius)) {
                 const bonus = piece.radius * 1.5 + (MAX_POSSIBLE_RADIUS * 0.1);
                 piece.radius += bonus;
                 totalScore += Math.round(bonus * 5);
                 createParticles(blackHole.x, blackHole.y, '#a855f7', 40);
                 playKillSound();
-                blackHoleActive = false;
-                blackHole = null;
-                blackHoleTimer = Date.now();
+                eaten = true;
                 break;
             }
         }
-        // Botlar kara deliği yiyemez
+        if (eaten) {
+            blackHoleActive = false;
+            blackHole = null;
+            blackHoleTimer = Date.now();
+        }
     }
 
     // Bot büyüme sınırı
