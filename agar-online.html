@@ -1155,11 +1155,7 @@ function updateGame() {
         if (!bot.alive) continue;
         for (const spike of spikes) {
             if (bot.distTo(spike) < bot.radius + spike.radius) {
-                if (bot.radius < spike.radius) {
-                    // küçükse geç
-                } else {
-                    hitSpikeByScore(bot);
-                }
+                // Dikenler botlara bir şey yapmaz
                 break;
             }
         }
