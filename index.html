@@ -525,6 +525,8 @@ const btnMusicToggle = document.getElementById('btnMusicToggle');
 const btnMusicNext = document.getElementById('btnMusicNext');
 
 // ========== MEME SES SİSTEMİ ==========
+let audioActivated = false;
+
 const MemeAudio = {
     ctx: null,
     masterGain: null,
@@ -533,7 +535,7 @@ const MemeAudio = {
     sfxEnabled: true,
     currentSong: null,
     currentSongIndex: -1,
-    isPlaying: false,
+    _ready: false,
 
     playlist: [
         { title: 'Fun - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
@@ -562,26 +564,15 @@ const MemeAudio = {
             this.musicGain.gain.value = 0.5;
             this.musicGain.connect(this.masterGain);
 
-            this._setupAutoResume();
+            this._ready = true;
+            if (this.ctx.state === 'suspended') this.ctx.resume();
         } catch(e) {}
     },
 
-    _setupAutoResume() {
-        const resume = () => {
-            if (this.ctx && this.ctx.state === 'suspended') {
-                this.ctx.resume();
-            }
-        };
-        document.addEventListener('click', resume, { once: true });
-        document.addEventListener('keydown', resume, { once: true });
-        document.addEventListener('touchstart', resume, { once: true });
-    },
-
-    ensure() {
-        if (!this.ctx) this.init();
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+    activate() {
+        if (this._ready) return;
+        this.init();
+        if (this.musicEnabled && !this.currentSong) this.playNextSong();
     },
 
     setVolume(v) {
@@ -591,8 +582,8 @@ const MemeAudio = {
 
     // Procedural meme sound: BRUH - low frequency wobble
     playBruh() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMemeName(0); return; }
+        if (!this._ready) { this.showMemeName(0); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -624,8 +615,8 @@ const MemeAudio = {
 
     // Procedural meme sound: VINE BOOM - sub bass hit
     playVineBoom() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMemeName(1); return; }
+        if (!this._ready) { this.showMemeName(1); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -655,8 +646,8 @@ const MemeAudio = {
 
     // Procedural meme sound: METAL PIPE - metallic resonance
     playMetalPipe() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMemeName(2); return; }
+        if (!this._ready) { this.showMemeName(2); return; }
         try {
             const now = this.ctx.currentTime;
             const harmonics = [1, 2.5, 4.3, 6.8, 11.2];
@@ -706,8 +697,8 @@ const MemeAudio = {
 
     // Procedural meme sound: AIRHORN - frequency sweep
     playAirhorn() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMemeName(3); return; }
+        if (!this._ready) { this.showMemeName(3); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -739,8 +730,8 @@ const MemeAudio = {
 
     // Procedural meme sound: EMOTIONAL DAMAGE - ascending tone
     playEmotionalDamage() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMemeName(4); return; }
+        if (!this._ready) { this.showMemeName(4); return; }
         try {
             const now = this.ctx.currentTime;
             const notes = [262, 330, 392, 523, 659, 784, 1047];
@@ -788,6 +779,7 @@ const MemeAudio = {
     toggleMusic() {
         this.musicEnabled = !this.musicEnabled;
         btnMusicToggle.textContent = this.musicEnabled ? '🎵 MÜZİK AÇIK' : '🎵 MÜZİK KAPALI';
+        this.activate();
 
         if (this.musicEnabled) {
             if (!this.currentSong) {
@@ -804,6 +796,7 @@ const MemeAudio = {
 
     playNextSong() {
         if (!this.musicEnabled) return;
+        this.activate();
         if (this.currentSong) {
             this.currentSong.pause();
             this.currentSong = null;
@@ -830,25 +823,43 @@ const MemeAudio = {
 
     playEatSound() {
         if (!this.sfxEnabled) return;
-        // Her yemede rastgele bir meme sesi
         this.playRandomMeme();
+        this._showAudioHint();
     },
 
     playDeathSound() {
         if (!this.sfxEnabled) return;
         this.playEmotionalDamage();
         setTimeout(() => this.playMetalPipe(), 400);
+        this._showAudioHint();
     },
 
     playLevelUpSound() {
         if (!this.sfxEnabled) return;
         this.playAirhorn();
         setTimeout(() => this.playVineBoom(), 300);
+        this._showAudioHint();
     },
 
     playBotDeathSound() {
         if (!this.sfxEnabled) return;
         this.playVineBoom();
+        this._showAudioHint();
+    },
+
+    _showAudioHint() {
+        if (this._ready || audioActivated) return;
+        if (memeNotification.style.display !== 'block') {
+            memeNotification.textContent = '👆 Sesi açmak için sayfaya tıkla!';
+            memeNotification.style.borderColor = '#4ecdc4';
+            memeNotification.style.display = 'block';
+            setTimeout(() => {
+                if (!audioActivated) {
+                    memeNotification.style.display = 'none';
+                    memeNotification.style.borderColor = '#f6d365';
+                }
+            }, 3000);
+        }
     }
 };
 
@@ -1055,7 +1066,7 @@ function setDir(d) {
 }
 
 function startGame() {
-    MemeAudio.ensure();
+    MemeAudio.activate();
     if (over) { init(); }
     if (running && !paused) return;
     running = true; paused = false;
@@ -1369,6 +1380,18 @@ init();
 animLoop();
 setTimeout(startGame, 100);
 canvas.focus();
+
+function onFirstInteraction() {
+    if (audioActivated) return;
+    audioActivated = true;
+    MemeAudio.activate();
+    document.removeEventListener('mousedown', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+    document.removeEventListener('touchstart', onFirstInteraction);
+}
+document.addEventListener('mousedown', onFirstInteraction);
+document.addEventListener('keydown', onFirstInteraction);
+document.addEventListener('touchstart', onFirstInteraction);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

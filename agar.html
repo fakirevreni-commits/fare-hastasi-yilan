@@ -336,6 +336,8 @@ let totalFrames = 0;
 let narutoPlaying = false;
 
 // ========== MEME SES SİSTEMİ ==========
+let audioActivated = false;
+
 const MemeAudio = {
     ctx: null,
     masterGain: null,
@@ -344,6 +346,7 @@ const MemeAudio = {
     sfxEnabled: true,
     currentSong: null,
     currentSongIndex: -1,
+    _ready: false,
 
     playlist: [
         { title: 'Fun - Alex-Productions', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
@@ -364,26 +367,15 @@ const MemeAudio = {
             this.masterGain = this.ctx.createGain();
             this.masterGain.gain.value = 0.7;
             this.masterGain.connect(this.ctx.destination);
-            this._setupAutoResume();
+            this._ready = true;
+            if (this.ctx.state === 'suspended') this.ctx.resume();
         } catch(e) {}
     },
 
-    _setupAutoResume() {
-        const resume = () => {
-            if (this.ctx && this.ctx.state === 'suspended') {
-                this.ctx.resume();
-            }
-        };
-        document.addEventListener('click', resume, { once: true });
-        document.addEventListener('keydown', resume, { once: true });
-        document.addEventListener('touchstart', resume, { once: true });
-    },
-
-    ensure() {
-        if (!this.ctx) this.init();
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+    activate() {
+        if (this._ready) return;
+        this.init();
+        if (this.musicEnabled && !this.currentSong) this.playNextSong();
     },
 
     setVolume(v) {
@@ -391,8 +383,8 @@ const MemeAudio = {
     },
 
     playBruh() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMeme(0); return; }
+        if (!this._ready) { this.showMeme(0); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -418,8 +410,8 @@ const MemeAudio = {
     },
 
     playVineBoom() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMeme(1); return; }
+        if (!this._ready) { this.showMeme(1); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -443,8 +435,8 @@ const MemeAudio = {
     },
 
     playMetalPipe() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMeme(2); return; }
+        if (!this._ready) { this.showMeme(2); return; }
         try {
             const now = this.ctx.currentTime;
             [1, 2.5, 4.3, 6.8].forEach((h, i) => {
@@ -469,8 +461,8 @@ const MemeAudio = {
     },
 
     playAirhorn() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMeme(3); return; }
+        if (!this._ready) { this.showMeme(3); return; }
         try {
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
@@ -495,8 +487,8 @@ const MemeAudio = {
     },
 
     playEmotionalDamage() {
-        this.ensure();
-        if (!this.ctx || !this.sfxEnabled) return;
+        if (!this.sfxEnabled) { this.showMeme(4); return; }
+        if (!this._ready) { this.showMeme(4); return; }
         try {
             const now = this.ctx.currentTime;
             [262, 330, 392, 523, 659, 784, 1047].forEach((freq, i) => {
@@ -532,6 +524,7 @@ const MemeAudio = {
         this.musicEnabled = !this.musicEnabled;
         const btn = document.getElementById('btnMusicToggle');
         if (btn) btn.textContent = this.musicEnabled ? '🎵 AÇIK' : '🎵 KAPALI';
+        this.activate();
         if (this.musicEnabled) {
             if (!this.currentSong) this.playNextSong();
             else this.currentSong.play().catch(()=>{});
@@ -540,6 +533,7 @@ const MemeAudio = {
 
     playNextSong() {
         if (!this.musicEnabled) return;
+        this.activate();
         if (this.currentSong) { this.currentSong.pause(); this.currentSong = null; }
         this.currentSongIndex = (this.currentSongIndex + 1) % this.playlist.length;
         const song = this.playlist[this.currentSongIndex];
@@ -554,11 +548,22 @@ const MemeAudio = {
         if (np) np.textContent = `🎵 ${song.title}`;
     },
 
-    playEatSound() { if (this.sfxEnabled) this.playRandomMeme(); },
-    playDeathSound() { if (this.sfxEnabled) { this.playEmotionalDamage(); setTimeout(()=>this.playMetalPipe(), 400); } },
-    playLevelUpSound() { if (this.sfxEnabled) { this.playAirhorn(); setTimeout(()=>this.playVineBoom(), 300); } },
-    playBotDeathSound() { if (this.sfxEnabled) this.playVineBoom(); },
-    playNarutoSound() { if (this.sfxEnabled) this.playAirhorn(); }
+    playEatSound() { if (this.sfxEnabled) this.playRandomMeme(); this._showAudioHint(); },
+    playDeathSound() { if (this.sfxEnabled) { this.playEmotionalDamage(); setTimeout(()=>this.playMetalPipe(), 400); } this._showAudioHint(); },
+    playLevelUpSound() { if (this.sfxEnabled) { this.playAirhorn(); setTimeout(()=>this.playVineBoom(), 300); } this._showAudioHint(); },
+    playBotDeathSound() { if (this.sfxEnabled) this.playVineBoom(); this._showAudioHint(); },
+    playNarutoSound() { if (this.sfxEnabled) this.playAirhorn(); this._showAudioHint(); },
+
+    _showAudioHint() {
+        if (this._ready || audioActivated) return;
+        const el = document.getElementById('memeNotification');
+        if (el && el.style.display !== 'block') {
+            el.textContent = '👆 Sesi açmak için sayfaya tıkla!';
+            el.style.borderColor = '#4ecdc4';
+            el.style.display = 'block';
+            setTimeout(() => { if (!audioActivated) { el.style.display = 'none'; el.style.borderColor = '#f6d365'; } }, 3000);
+        }
+    }
 };
 
 function initAudio() { MemeAudio.init(); }
@@ -567,6 +572,18 @@ function playDeathSound() { MemeAudio.playDeathSound(); }
 function playLevelUpSound() { MemeAudio.playLevelUpSound(); }
 function playBotDeathSound() { MemeAudio.playBotDeathSound(); }
 function playNarutoSound() { MemeAudio.playNarutoSound(); }
+
+function onFirstInteraction() {
+    if (audioActivated) return;
+    audioActivated = true;
+    MemeAudio.activate();
+    document.removeEventListener('mousedown', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+    document.removeEventListener('touchstart', onFirstInteraction);
+}
+document.addEventListener('mousedown', onFirstInteraction);
+document.addEventListener('keydown', onFirstInteraction);
+document.addEventListener('touchstart', onFirstInteraction);
 
 // ========== OYUN MANTIĞI ==========
 class Cell {
@@ -948,7 +965,6 @@ function initGame() {
     document.getElementById('scoreDisplay').textContent = '0';
     document.getElementById('killDisplay').textContent = 'Öldürme: 0';
     updateLeaderboard();
-    MemeAudio.ensure();
 }
 
 function spawnFood() {
@@ -1264,7 +1280,7 @@ document.getElementById('volSlider').addEventListener('input', function() {
 
 // Canvas click (ses başlatma için)
 canvas.addEventListener('click', () => {
-    MemeAudio.ensure();
+    MemeAudio.activate();
 });
 
 // ========== BAŞLAT ==========
