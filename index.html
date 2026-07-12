@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐍 Fare Hastası Yılan</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        canvas {
+            border: 3px solid rgba(78, 205, 196, 0.6);
+            border-radius: 16px;
+            background: #0a0a1a;
+            box-shadow: 0 0 40px rgba(78, 205, 196, 0.1), inset 0 0 80px rgba(0,0,0,0.6);
+            display: block;
+            cursor: pointer;
+            touch-action: none;
+        }
+        canvas:focus { outline: none; border-color: #4ecdc4; box-shadow: 0 0 60px rgba(78,205,196,0.3); }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 220px;
+        }
+
+        .panel {
+            background: rgba(20, 20, 50, 0.95);
+            border: 2px solid rgba(78, 205, 196, 0.3);
+            border-radius: 14px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .panel h3 {
+            color: #4ecdc4;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(78,205,196,0.1);
+        }
+        .stat-item .label { font-size: 0.7rem; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-item .value { font-size: 1.3rem; font-weight: 700; color: #4ecdc4; }
+        .stat-item.high .value { color: #f6d365; }
+        .stat-item.lvl .value { color: #96c93d; }
+        .stat-item.len .value { color: #45b7d1; }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(78,205,196,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #4ecdc4; border: 2px solid rgba(78,205,196,0.3); }
+        .btn-secondary:hover { background: rgba(78,205,196,0.15); }
+        .btn-danger { background: linear-gradient(135deg,#fc466b,#3f5efb); color: white; }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(252,70,107,0.4); }
+        .btn + .btn { margin-top: 8px; }
+
+        .dir-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .dir-btn {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(78,205,196,0.2);
+            border-radius: 10px;
+            padding: 14px 0;
+            color: #4ecdc4;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            touch-action: manipulation;
+        }
+        .dir-btn:active { background: rgba(78,205,196,0.2); transform: scale(0.92); }
+        .dir-btn.empty { visibility: hidden; }
+
+        .highscores-list {
+            max-height: 260px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .highscores-list::-webkit-scrollbar { width: 4px; }
+        .highscores-list::-webkit-scrollbar-track { background: transparent; }
+        .highscores-list::-webkit-scrollbar-thumb { background: #4ecdc4; border-radius: 4px; }
+
+        .hs-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(78,205,196,0.08);
+            font-size: 0.85rem;
+            animation: slideIn 0.25s ease;
+        }
+        @keyframes slideIn { from { opacity:0; transform:translateX(-15px); } to { opacity:1; transform:translateX(0); } }
+        .hs-entry:hover { border-color: rgba(78,205,196,0.3); }
+        .hs-rank { font-weight:700; min-width:24px; }
+        .hs-rank.gold { color:#f6d365; } .hs-rank.silver { color:#c0c0c0; } .hs-rank.bronze { color:#cd7f32; }
+        .hs-name { flex:1; padding:0 10px; color:#e2e8f0; }
+        .hs-score { font-weight:700; color:#4ecdc4; }
+        .hs-info { font-size:0.65rem; color:#718096; }
+        .empty-msg { text-align:center; color:#718096; padding:20px; font-style:italic; font-size:0.9rem; }
+
+        .hint {
+            text-align: center;
+            color: rgba(160,174,192,0.6);
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+        }
+        .hint kbd {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(78,205,196,0.2);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #4ecdc4;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(10,10,26,0.92);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(6px);
+        }
+        .overlay.active { display: flex; }
+
+        .overlay-box {
+            background: linear-gradient(135deg,#1a1a3e,#0f0c29);
+            border: 3px solid #4ecdc4;
+            border-radius: 20px;
+            padding: 35px 40px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(78,205,196,0.15);
+            animation: popIn 0.35s ease;
+        }
+        .overlay-box.gameover { border-color: #fc466b; box-shadow: 0 0 60px rgba(252,70,107,0.15); }
+        @keyframes popIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+
+        .overlay-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg,#4ecdc4,#45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .overlay-box.gameover .overlay-title {
+            background: linear-gradient(135deg,#fc466b,#3f5efb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .overlay-sub { color:#a0aec0; margin-bottom:20px; font-size:0.95rem; }
+
+        .overlay-stats {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .os-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(78,205,196,0.15);
+            border-radius: 10px;
+            padding: 10px 18px;
+            min-width: 80px;
+        }
+        .os-box .lbl { font-size:0.7rem; color:#718096; text-transform:uppercase; letter-spacing:0.5px; }
+        .os-box .val { font-size:1.3rem; font-weight:700; color:#4ecdc4; }
+
+        .overlay-input {
+            width:100%;
+            padding:14px;
+            border:2px solid rgba(78,205,196,0.3);
+            border-radius:10px;
+            background:rgba(0,0,0,0.5);
+            color:#e2e8f0;
+            font-size:1rem;
+            text-align:center;
+            margin-bottom:15px;
+            outline:none;
+        }
+        .overlay-input:focus { border-color:#4ecdc4; }
+
+        /* Menü overlay */
+        .menu-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .menu-btn {
+            padding: 14px;
+            border: 2px solid rgba(78,205,196,0.3);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            color: #e2e8f0;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .menu-btn:hover { background: rgba(78,205,196,0.1); border-color: #4ecdc4; transform: translateY(-1px); }
+        .menu-btn.danger { border-color: rgba(252,70,107,0.4); }
+        .menu-btn.danger:hover { border-color: #fc466b; background: rgba(252,70,107,0.1); }
+
+        /* Level-up notification */
+        .level-flash {
+            position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg,#96c93d,#4ecdc4);
+            color: #0a0a1a;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            z-index: 999;
+            box-shadow: 0 4px 30px rgba(150,201,61,0.5);
+            display: none;
+            animation: dropIn 0.4s ease;
+            white-space: nowrap;
+        }
+        @keyframes dropIn { from { transform: translateX(-50%) translateY(-80px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }
+        .level-flash.show { display: block; }
+
+        @media (max-width: 800px) {
+            .container { flex-direction: column; align-items: center; gap: 15px; }
+            .sidebar { flex-direction: row; flex-wrap: wrap; min-width: unset; width: 100%; max-width: 600px; }
+            .sidebar .panel { flex: 1; min-width: 180px; }
+            canvas { max-width: 100%; height: auto; }
+            .overlay-box { padding: 25px 20px; }
+        }
+        @media (max-width: 500px) {
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+            .stat-item .value { font-size: 1rem; }
+            .panel { padding: 12px; }
+            .overlay-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="level-flash" id="levelFlash"></div>
+
+<div class="container">
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="600" height="600" tabindex="0"></canvas>
+        <div class="hint">
+            <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> hareket &nbsp;|&nbsp;
+            <kbd>Boşluk</kbd> duraklat &nbsp;|&nbsp; <kbd>Esc</kbd> menü
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="panel">
+            <h3>📊 İstatistikler</h3>
+            <div class="stats-grid">
+                <div class="stat-item"><div class="label">Skor</div><div class="value" id="scoreVal">0</div></div>
+                <div class="stat-item high"><div class="label">En Yüksek</div><div class="value" id="highVal">0</div></div>
+                <div class="stat-item lvl"><div class="label">Seviye</div><div class="value" id="levelVal">1</div></div>
+                <div class="stat-item len"><div class="label">Uzunluk</div><div class="value" id="lengthVal">3</div></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>🕹️ Yön Tuşları</h3>
+            <div class="dir-pad">
+                <div class="dir-btn empty"></div>
+                <button class="dir-btn" id="btnUp">↑</button>
+                <div class="dir-btn empty"></div>
+                <button class="dir-btn" id="btnLeft">←</button>
+                <button class="dir-btn" id="btnDown">↓</button>
+                <button class="dir-btn" id="btnRight">→</button>
+            </div>
+            <button class="btn btn-primary" id="btnStart" style="margin-top:10px">▶ OYUNU BAŞLAT</button>
+            <div style="display:flex;gap:8px;margin-top:8px">
+                <button class="btn btn-secondary" id="btnPause" style="flex:1">⏸ DURDUR</button>
+                <button class="btn btn-danger" id="btnRestart" style="flex:1">↻ SIFIRLA</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>🏆 Skor Tablosu</h3>
+            <div class="highscores-list" id="scoreList">
+                <div class="empty-msg">Henüz skor kaydı yok.</div>
+            </div>
+            <button class="btn btn-secondary" id="btnClearScores" style="margin-top:10px;font-size:0.75rem">Skorları Temizle</button>
+        </div>
+    </div>
+</div>
+
+<!-- Oyun Bitti -->
+<div class="overlay" id="gameOverOverlay">
+    <div class="overlay-box gameover">
+        <div class="overlay-title">💀 OYUN BİTTİ</div>
+        <div class="overlay-sub">Solucan duvara veya kendine çarptı!</div>
+        <div class="overlay-stats">
+            <div class="os-box"><div class="lbl">Skor</div><div class="val" id="finalScore">0</div></div>
+            <div class="os-box"><div class="lbl">Seviye</div><div class="val" id="finalLevel">1</div></div>
+            <div class="os-box"><div class="lbl">Uzunluk</div><div class="val" id="finalLength">3</div></div>
+        </div>
+        <input type="text" class="overlay-input" id="nameInput" placeholder="Adınızı girin..." maxlength="12" autocomplete="off">
+        <button class="btn btn-primary" id="btnSave">KAYDET VE YENİDEN BAŞLA</button>
+        <button class="btn btn-secondary" id="btnSkip" style="margin-top:8px">ATLA VE YENİDEN BAŞLA</button>
+    </div>
+</div>
+
+<!-- Menü (ESC) -->
+<div class="overlay" id="menuOverlay">
+    <div class="overlay-box">
+        <div class="overlay-title">⚙️ MENÜ</div>
+        <div class="overlay-sub">Oyun durduruldu</div>
+        <div class="menu-grid">
+            <button class="menu-btn" id="menuResume">▶ DEVAM ET</button>
+            <button class="menu-btn" id="menuRestart">↻ YENİDEN BAŞLAT</button>
+            <button class="menu-btn danger" id="menuQuit">✕ ÇIKIŞ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Seviye Atlama -->
+<div class="overlay" id="levelUpOverlay">
+    <div class="overlay-box">
+        <div class="overlay-title">🎉 SEVİYE ATLADI! 🎉</div>
+        <div class="overlay-sub" id="levelSub">Tebrikler! Yeni seviyeye ulaştınız.</div>
+        <div class="overlay-stats">
+            <div class="os-box"><div class="lbl">Yeni Seviye</div><div class="val" id="luLevel">2</div></div>
+            <div class="os-box"><div class="lbl">Fare Puanı</div><div class="val" id="luPoints">+15</div></div>
+        </div>
+        <button class="btn btn-primary" id="btnCont">DEVAM ET</button>
+    </div>
+</div>
+
+<script>
+// ========== AYARLAR ==========
+const GRID = 20;
+const SIZE = 600;
+const CELLS = SIZE / GRID;
+const STORAGE_KEY = 'fare_yiyen_highscores';
+const NAME_KEY = 'fare_yiyen_player';
+const MAX_SCORES = 10;
+const APPLES_PER_LEVEL = 6;
+const LEVEL_BONUS = 60;
+const MIN_SPEED = 60;
+const BASE_SPEED = 150;
+const SPEED_PER_APPLE = 0.8;
+
+// Seviye konfigürasyonu
+const LVL = {
+    1:  { speed:150, pts:10, color:'#4ecdc4',       name:'Yavru Yılan' },
+    2:  { speed:140, pts:12, color:'#45b7d1',        name:'Genç Yılan' },
+    3:  { speed:130, pts:14, color:'#96c93d',        name:'Avcı Yılan' },
+    4:  { speed:120, pts:16, color:'#f6d365',        name:'Usta Yılan' },
+    5:  { speed:110, pts:18, color:'#fda085',        name:'Efsane Yılan' },
+    6:  { speed:100, pts:22, color:'#fc466b',        name:'Korkuç Yılan' },
+    7:  { speed:90,  pts:26, color:'#a855f7',        name:'Gölge Yılan' },
+    8:  { speed:80,  pts:32, color:'#ec4899',        name:'Alev Yılan' },
+    9:  { speed:70,  pts:40, color:'#f97316',        name:'Ejderha' },
+    10: { speed:60,  pts:50, color:'#fff',           name:'EVRENSEL YILAN ⭐' }
+};
+
+// ========== DOM ==========
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreVal = document.getElementById('scoreVal');
+const highVal = document.getElementById('highVal');
+const levelVal = document.getElementById('levelVal');
+const lengthVal = document.getElementById('lengthVal');
+const scoreList = document.getElementById('scoreList');
+const levelFlash = document.getElementById('levelFlash');
+const gameOverOverlay = document.getElementById('gameOverOverlay');
+const menuOverlay = document.getElementById('menuOverlay');
+const levelUpOverlay = document.getElementById('levelUpOverlay');
+const finalScore = document.getElementById('finalScore');
+const finalLevel = document.getElementById('finalLevel');
+const finalLength = document.getElementById('finalLength');
+const nameInput = document.getElementById('nameInput');
+const luLevel = document.getElementById('luLevel');
+const luPoints = document.getElementById('luPoints');
+const levelSub = document.getElementById('levelSub');
+
+// ========== OYUN DURUMU ==========
+let snake = [];
+let dir = {x:1, y:0};
+let nextDir = {x:1, y:0};
+let mouse = {x:0, y:0};
+let score = 0;
+let highScore = 0;
+let level = 1;
+let speed = BASE_SPEED;
+let eatCount = 0;
+let loop = null;
+let running = false;
+let paused = false;
+let over = false;
+let timer = 0;
+let particles = [];
+let stars = [];
+
+// Arka plan yıldızları
+for (let i = 0; i < 80; i++) {
+    stars.push({ x: Math.random()*SIZE, y: Math.random()*SIZE, r: Math.random()*1.5+0.3, s: Math.random()*0.5+0.1 });
+}
+
+// ========== YEREL DEPOLAMA ==========
+function loadScores() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+}
+function saveScores(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+function loadName() { return localStorage.getItem(NAME_KEY) || ''; }
+function saveName(n) { localStorage.setItem(NAME_KEY, n); }
+
+function addScore(name, sc, lv, len) {
+    let list = loadScores();
+    list.push({ name: name||'Oyuncu', score:sc, level:lv, length:len, date: new Date().toISOString() });
+    list.sort((a,b) => b.score - a.score);
+    if (list.length > MAX_SCORES) list = list.slice(0, MAX_SCORES);
+    saveScores(list);
+    renderScores();
+}
+
+function renderScores() {
+    const list = loadScores();
+    if (!list.length) {
+        scoreList.innerHTML = '<div class="empty-msg">Henüz skor kaydı yok.</div>';
+        return;
+    }
+    scoreList.innerHTML = list.map((e,i) => {
+        const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        const d = new Date(e.date);
+        const ds = d.toLocaleDateString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div class="hs-entry" style="animation-delay:${i*0.04}s">
+            <span class="hs-rank ${cls}">#${i+1}</span>
+            <div><div class="hs-name">${esc(e.name)}</div><div class="hs-info">Sv.${e.level} • ${e.length} • ${ds}</div></div>
+            <span class="hs-score">${e.score.toLocaleString('tr-TR')}</span>
+        </div>`;
+    }).join('');
+}
+
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function clearScores() {
+    if (confirm('Tüm skorlar silinecek. Emin misiniz?')) { localStorage.removeItem(STORAGE_KEY); renderScores(); }
+}
+
+// ========== OYUN MANTIĞI ==========
+function randPos() {
+    return { x: Math.floor(Math.random()*CELLS), y: Math.floor(Math.random()*CELLS) };
+}
+
+function onSnake(p) {
+    return snake.some(s => s.x===p.x && s.y===p.y);
+}
+
+function spawnMouse() {
+    let p;
+    do { p = randPos(); } while (onSnake(p));
+    mouse = p;
+}
+
+function getLvl(l) { return LVL[Math.min(l,10)]; }
+
+function init() {
+    snake = [{x:10,y:15},{x:9,y:15},{x:8,y:15}];
+    dir = {x:1,y:0}; nextDir = {x:1,y:0};
+    score = 0; level = 1; eatCount = 0;
+    speed = BASE_SPEED; over = false; paused = false; running = false; particles = [];
+    if (loop) { clearInterval(loop); loop = null; }
+    spawnMouse();
+    updateUI();
+    renderScores();
+}
+
+function step() {
+    if (paused || over || !running) return;
+
+    dir = {...nextDir};
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // Duvar
+    if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS) { endGame(); return; }
+    // Kendi
+    if (onSnake(head)) { endGame(); return; }
+
+    snake.unshift(head);
+
+    if (head.x === mouse.x && head.y === mouse.y) {
+        eatMouse();
+    } else {
+        snake.pop();
+    }
+
+    // Rastgele fare spawn kontrolü (her adımda küçük bir şans)
+    if (Math.random() < 0.01) spawnMouse(); // fare kaçabilir
+
+    draw();
+}
+
+function eatMouse() {
+    const cfg = getLvl(level);
+    score += cfg.pts;
+    eatCount++;
+    burst(mouse.x, mouse.y, cfg.color, 12);
+    spawnMouse();
+
+    if (eatCount >= APPLES_PER_LEVEL) levelUp();
+
+    // Hızlanma
+    if (speed > MIN_SPEED) { speed = Math.max(MIN_SPEED, speed - SPEED_PER_APPLE); resetLoop(); }
+    updateUI();
+}
+
+function levelUp() {
+    level++;
+    eatCount = 0;
+    const cfg = getLvl(level);
+    speed = Math.max(MIN_SPEED, cfg.speed);
+    resetLoop();
+    score += LEVEL_BONUS * level;
+    updateUI();
+
+    // Seviye atlama patlaması
+    for (let i = 0; i < 40; i++) {
+        const a = Math.random()*Math.PI*2;
+        const spd = 2 + Math.random()*4;
+        particles.push({ x:SIZE/2, y:SIZE/2, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:4+Math.random()*8, c:cfg.color, life:1.5 });
+    }
+
+    // Overlay göster
+    luLevel.textContent = level;
+    luPoints.textContent = `+${cfg.pts}`;
+    levelSub.textContent = `${cfg.name} seviyesine ulaştınız!`;
+    levelUpOverlay.classList.add('active');
+    paused = true;
+
+    // Flash bildirim
+    levelFlash.textContent = `🎉 SEVİYE ${level}: ${cfg.name} 🎉`;
+    levelFlash.classList.add('show');
+    setTimeout(() => levelFlash.classList.remove('show'), 2500);
+}
+
+function endGame() {
+    over = true; running = false;
+    if (loop) { clearInterval(loop); loop = null; }
+    if (score > highScore) highScore = score;
+    updateUI();
+
+    finalScore.textContent = score.toLocaleString('tr-TR');
+    finalLevel.textContent = level;
+    finalLength.textContent = snake.length;
+    nameInput.value = loadName() || '';
+    gameOverOverlay.classList.add('active');
+
+    // Patlama
+    snake.forEach((s,i) => setTimeout(() => burst(s.x, s.y, '#fc466b', 5), i*20));
+}
+
+function saveAndRestart() {
+    const name = nameInput.value.trim() || 'Oyuncu';
+    saveName(name);
+    addScore(name, score, level, snake.length);
+    gameOverOverlay.classList.remove('active');
+    init();
+}
+
+function skipAndRestart() {
+    gameOverOverlay.classList.remove('active');
+    init();
+}
+
+// ========== KONTROL ==========
+function setDir(d) {
+    if (d.x === -dir.x && d.y === -dir.y) return;
+    nextDir = d;
+}
+
+function startGame() {
+    if (over) { init(); }
+    if (running && !paused) return;
+    running = true; paused = false;
+    if (!loop) loop = setInterval(step, speed);
+    canvas.focus();
+    document.getElementById('btnStart').textContent = '▶ DEVAM ET';
+}
+
+function togglePause() {
+    if (!running || over) return;
+    paused = !paused;
+    document.getElementById('btnPause').textContent = paused ? '▶ DEVAM ET' : '⏸ DURDUR';
+    if (!paused) canvas.focus();
+}
+
+function restart() {
+    if (loop) { clearInterval(loop); loop = null; }
+    gameOverOverlay.classList.remove('active');
+    levelUpOverlay.classList.remove('active');
+    menuOverlay.classList.remove('active');
+    init();
+    document.getElementById('btnStart').textContent = '▶ OYUNU BAŞLAT';
+    canvas.focus();
+}
+
+function resetLoop() {
+    if (loop) { clearInterval(loop); loop = null; }
+    if (running && !over) loop = setInterval(step, speed);
+}
+
+// ========== EFECTLER ==========
+function burst(gx, gy, color, count) {
+    const cx = gx*GRID + GRID/2, cy = gy*GRID + GRID/2;
+    for (let i = 0; i < count; i++) {
+        const a = Math.random()*Math.PI*2;
+        const spd = 1.5 + Math.random()*3;
+        particles.push({ x:cx, y:cy, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:3+Math.random()*5, c:color, life:1 });
+    }
+}
+
+// ========== ÇİZİM ==========
+function draw() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    // Arka plan
+    const grad = ctx.createRadialGradient(SIZE/2,SIZE/2,0,SIZE/2,SIZE/2,SIZE);
+    grad.addColorStop(0,'#0f0f2a'); grad.addColorStop(1,'#050510');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,SIZE,SIZE);
+
+    // Yıldızlar
+    stars.forEach(s => { ctx.fillStyle=`rgba(255,255,255,${0.3+Math.sin(timer*s.s)*0.3})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
+
+    // Grid çizgileri (hafif)
+    ctx.strokeStyle = 'rgba(78,205,196,0.03)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= CELLS; i++) {
+        const p = i*GRID;
+        ctx.beginPath(); ctx.moveTo(p,0); ctx.lineTo(p,SIZE); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,p); ctx.lineTo(SIZE,p); ctx.stroke();
+    }
+
+    // Fareyi çiz
+    drawMouse();
+
+    // Yılanı çiz
+    drawSnake();
+
+    // Parçacıklar
+    drawParticles();
+
+    // Durduruldu yazısı
+    if (paused && !over && !levelUpOverlay.classList.contains('active') && !menuOverlay.classList.contains('active')) {
+        ctx.fillStyle = 'rgba(10,10,26,0.8)';
+        ctx.fillRect(0,0,SIZE,SIZE);
+        ctx.font = 'bold 40px Segoe UI';
+        ctx.fillStyle = '#4ecdc4'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('⏸ DURDURULDU', SIZE/2, SIZE/2-15);
+        ctx.font = '16px Segoe UI';
+        ctx.fillStyle = '#718096';
+        ctx.fillText('Devam için Boşluk / Menü için Esc', SIZE/2, SIZE/2+30);
+    }
+
+    timer += 0.02;
+    // Partikül güncelleme
+    particles = particles.filter(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.life -= 0.025;
+        return p.life > 0;
+    });
+}
+
+function drawMouse() {
+    const x = mouse.x*GRID + GRID/2, y = mouse.y*GRID + GRID/2;
+    const pulse = Math.sin(timer*4)*2;
+    const sz = GRID/2 - 2 + pulse;
+
+    // Parlama
+    ctx.shadowColor = '#f6d365'; ctx.shadowBlur = 20;
+
+    // Fare gövdesi (oval)
+    const g = ctx.createRadialGradient(x-3,y-3,0,x,y,sz);
+    g.addColorStop(0,'#fff5e6'); g.addColorStop(0.4,'#d4a574'); g.addColorStop(1,'#8b6f47');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(x, y+1, sz*0.7, sz*0.9, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kulaklar
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#b8957a';
+    ctx.beginPath(); ctx.ellipse(x-5, y-6, 4, 5, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+5, y-6, 4, 5, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e8b4a0';
+    ctx.beginPath(); ctx.ellipse(x-5, y-6, 2.5, 3.5, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+5, y-6, 2.5, 3.5, 0.3, 0, Math.PI*2); ctx.fill();
+
+    // Gözler
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(x-3, y-2, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+3, y-2, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x-2, y-3, 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+4, y-3, 0.7, 0, Math.PI*2); ctx.fill();
+
+    // Burun
+    ctx.fillStyle = '#ff9999';
+    ctx.beginPath(); ctx.ellipse(x, y+2, 1.5, 1, 0, 0, Math.PI*2); ctx.fill();
+
+    // Bıyıklar
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 0.5;
+    const bm = 0.8;
+    for (let s = -1; s <= 1; s+=2) {
+        for (let i = 0; i < 3; i++) {
+            const bx = x + s*6, by = y - 1 + (i-1)*2;
+            ctx.beginPath(); ctx.moveTo(x + s*4, y+1); ctx.lineTo(bx + s*i*3, by); ctx.stroke();
+        }
+    }
+
+    ctx.shadowBlur = 0;
+}
+
+function drawSnake() {
+    const cfg = getLvl(level);
+    const bc = cfg.color;
+
+    snake.forEach((seg, i) => {
+        const x = seg.x*GRID, y = seg.y*GRID;
+        const isHead = i === 0;
+        const p = i / snake.length;
+        const pad = isHead ? 1 : 2;
+        const sz = GRID - pad*2;
+
+        // Vücut rengi
+        let color;
+        if (isHead) color = bc;
+        else { const d = 30; color = `rgb(${Math.max(0,parseInt(bc.slice(1,3),16)-p*d)},${Math.max(0,parseInt(bc.slice(3,5),16)-p*d)},${Math.max(0,parseInt(bc.slice(5,7),16)-p*d)})`; }
+
+        if (isHead) ctx.shadowColor = bc; ctx.shadowBlur = isHead ? 12 : 0;
+
+        // Yuvarlak segment
+        ctx.fillStyle = color;
+        const r = isHead ? 7 : 4;
+        ctx.beginPath();
+        ctx.moveTo(x+pad+r, y+pad);
+        ctx.lineTo(x+pad+sz-r, y+pad);
+        ctx.quadraticCurveTo(x+pad+sz, y+pad, x+pad+sz, y+pad+r);
+        ctx.lineTo(x+pad+sz, y+pad+sz-r);
+        ctx.quadraticCurveTo(x+pad+sz, y+pad+sz, x+pad+sz-r, y+pad+sz);
+        ctx.lineTo(x+pad+r, y+pad+sz);
+        ctx.quadraticCurveTo(x+pad, y+pad+sz, x+pad, y+pad+sz-r);
+        ctx.lineTo(x+pad, y+pad+r);
+        ctx.quadraticCurveTo(x+pad, y+pad, x+pad+r, y+pad);
+        ctx.closePath();
+        ctx.fill();
+
+        if (isHead) {
+            // Gözler
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0a0a1a';
+            let ex1, ey1, ex2, ey2;
+            const o = 4; const e = 3;
+            if (dir.x === 1) { ex1=x+sz-1-e; ey1=y+o; ex2=x+sz-1-e; ey2=y+sz-o; }
+            else if (dir.x === -1) { ex1=x+1+e; ey1=y+o; ex2=x+1+e; ey2=y+sz-o; }
+            else if (dir.y === -1) { ex1=x+o; ey1=y+1+e; ex2=x+sz-o; ey2=y+1+e; }
+            else { ex1=x+o; ey1=y+sz-1-e; ex2=x+sz-o; ey2=y+sz-1-e; }
+            ctx.beginPath(); ctx.arc(ex1,ey1,3,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(ex2,ey2,3,0,Math.PI*2); ctx.fill();
+            // Göz bebeği
+            ctx.fillStyle = '#4ecdc4';
+            let px=0,py=0;
+            if (dir.x===1) px=1.5; else if (dir.x===-1) px=-1.5;
+            if (dir.y===1) py=1.5; else if (dir.y===-1) py=-1.5;
+            ctx.beginPath(); ctx.arc(ex1+px,ey1+py,1.5,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(ex2+px,ey2+py,1.5,0,Math.PI*2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+    });
+}
+
+function drawParticles() {
+    particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.c;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+// ========== ANİMASYON DÖNGÜSÜ ==========
+function animLoop() {
+    draw();
+    requestAnimationFrame(animLoop);
+}
+
+// ========== UI GÜNCELLEME ==========
+function updateUI() {
+    scoreVal.textContent = score.toLocaleString('tr-TR');
+    highVal.textContent = highScore.toLocaleString('tr-TR');
+    levelVal.textContent = level;
+    lengthVal.textContent = snake.length;
+}
+
+// ========== OLAY DİNLEYİCİLER ==========
+// Klavye
+document.addEventListener('keydown', e => {
+    switch(e.key) {
+        case 'ArrowUp': case 'w': case 'W': e.preventDefault(); setDir({x:0,y:-1}); break;
+        case 'ArrowDown': case 's': case 'S': e.preventDefault(); setDir({x:0,y:1}); break;
+        case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); setDir({x:-1,y:0}); break;
+        case 'ArrowRight': case 'd': case 'D': e.preventDefault(); setDir({x:1,y:0}); break;
+        case ' ': e.preventDefault(); togglePause(); break;
+        case 'Escape': e.preventDefault();
+            if (levelUpOverlay.classList.contains('active')) { levelUpOverlay.classList.remove('active'); paused=false; }
+            else if (gameOverOverlay.classList.contains('active')) { skipAndRestart(); }
+            else if (menuOverlay.classList.contains('active')) { menuOverlay.classList.remove('active'); paused=false; }
+            else { menuOverlay.classList.add('active'); paused=true; }
+            break;
+    }
+});
+
+// Yön butonları
+document.getElementById('btnUp').addEventListener('click', () => setDir({x:0,y:-1}));
+document.getElementById('btnDown').addEventListener('click', () => setDir({x:0,y:1}));
+document.getElementById('btnLeft').addEventListener('click', () => setDir({x:-1,y:0}));
+document.getElementById('btnRight').addEventListener('click', () => setDir({x:1,y:0}));
+
+// Ana butonlar
+document.getElementById('btnStart').addEventListener('click', startGame);
+document.getElementById('btnPause').addEventListener('click', togglePause);
+document.getElementById('btnRestart').addEventListener('click', restart);
+document.getElementById('btnClearScores').addEventListener('click', clearScores);
+
+// Oyun bitti butonları
+document.getElementById('btnSave').addEventListener('click', saveAndRestart);
+document.getElementById('btnSkip').addEventListener('click', skipAndRestart);
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') saveAndRestart(); });
+
+// Menü butonları
+document.getElementById('menuResume').addEventListener('click', () => { menuOverlay.classList.remove('active'); paused=false; canvas.focus(); });
+document.getElementById('menuRestart').addEventListener('click', () => { menuOverlay.classList.remove('active'); restart(); });
+document.getElementById('menuQuit').addEventListener('click', () => { menuOverlay.classList.remove('active'); paused=false; if (loop) { clearInterval(loop); loop=null; } running=false; init(); document.getElementById('btnStart').textContent='▶ OYUNU BAŞLAT'; });
+
+// Seviye atlama
+document.getElementById('btnCont').addEventListener('click', () => { levelUpOverlay.classList.remove('active'); paused=false; canvas.focus(); });
+
+// Canvas focus
+canvas.addEventListener('click', () => canvas.focus());
+
+// Dokunmatik kaydırma
+let tx=0, ty=0;
+canvas.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+canvas.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx)>25) setDir({x:dx>0?1:-1,y:0}); }
+    else { if (Math.abs(dy)>25) setDir({x:0,y:dy>0?1:-1}); }
+}, {passive:true});
+
+// ========== BAŞLAT ==========
+highScore = loadScores().length ? loadScores()[0].score : 0;
+renderScores();
+init();
+animLoop();
+canvas.focus();
+</script>
+</body>
+</html>
