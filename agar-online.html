@@ -342,12 +342,14 @@
         <h2>🎵 Şarkı Seç</h2>
         <p style="font-size:0.8rem">YouTube'dan Naruto opening ve popüler şarkılar</p>
         <div id="songList" style="display:flex;flex-direction:column;gap:5px;margin:10px 0;max-height:280px;overflow-y:auto">
-            <button class="btn-p" data-song="naruto1" style="width:100%;background:linear-gradient(135deg,#ff6b35,#e65100);font-size:0.85rem;padding:8px">🍥 Naruto OP 1 - ROCKS</button>
-            <button class="btn-p" data-song="silhouette" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300);font-size:0.85rem;padding:8px">🍥 Naruto - Silhouette</button>
-            <button class="btn-p" data-song="bluebird" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);font-size:0.85rem;padding:8px">🐦 Naruto - Blue Bird</button>
-            <button class="btn-p" data-song="narutoMain" style="width:100%;background:linear-gradient(135deg,#ff1744,#d50000);font-size:0.85rem;padding:8px">⚔️ Naruto Main Theme</button>
-            <button class="btn-p" data-song="tarkan" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316);font-size:0.85rem;padding:8px">🇹🇷 Tarkan - Yolla</button>
-            <button class="btn-p" data-song="turkish" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b);font-size:0.85rem;padding:8px">🎤 Türkçe Pop Melodi</button>
+            <button class="btn-p" data-song="basgaza" style="width:100%;background:linear-gradient(135deg,#ff6b35,#e65100);font-size:0.85rem;padding:8px">🔥 İsmail YK - Bas Gaza</button>
+            <button class="btn-p" data-song="arkadasim" style="width:100%;background:linear-gradient(135deg,#4caf50,#388e3c);font-size:0.85rem;padding:8px">🐴 Barış Manço - Arkadaşım Eşek</button>
+            <button class="btn-p" data-song="simarik" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316);font-size:0.85rem;padding:8px">💋 Tarkan - Şımarık</button>
+            <button class="btn-p" data-song="itirazim" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2);font-size:0.85rem;padding:8px">😔 Müslüm Gürses - İtirazım Var</button>
+            <button class="btn-p" data-song="gulumsememis" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);font-size:0.85rem;padding:8px">🌸 Sezen Aksu - Gülümse</button>
+            <button class="btn-p" data-song="duman" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b);font-size:0.85rem;padding:8px">🎸 Duman - Haberin Yok Ölüyorum</button>
+            <button class="btn-p" data-song="hadise" style="width:100%;background:linear-gradient(135deg,#ff1744,#d50000);font-size:0.85rem;padding:8px">💃 Hadise - Dum Tek Tek</button>
+            <button class="btn-p" data-song="mfo" style="width:100%;background:linear-gradient(135deg,#3f51b5,#303f9f);font-size:0.85rem;padding:8px">🎵 MFÖ - Yandık</button>
             <button class="btn-s" data-action="stop" style="width:100%">⏹ Durdur</button>
         </div>
         <div class="sep"></div>
@@ -432,70 +434,99 @@ function stopSong() {
 }
 
 const SONGS = {
-    naruto1: {
-        name: 'Naruto OP 1 - ROCKS',
+    basgaza: {
+        name: 'İsmail YK - Bas Gaza',
         notes: [
-            [330,0.2,'square'],[370,0.2,'square'],[392,0.3,'square'],[330,0.15,'square'],[370,0.15,'square'],
-            [392,0.3,'square'],[440,0.2,'square'],[494,0.2,'square'],[523,0.4,'square'],[494,0.15,'square'],
-            [523,0.15,'square'],[587,0.3,'square'],[523,0.2,'square'],[494,0.2,'square'],[440,0.4,'square'],
-            [392,0.2,'square'],[440,0.2,'square'],[494,0.3,'square'],[523,0.2,'square'],[587,0.2,'square'],
-            [659,0.4,'square'],[587,0.15,'square'],[659,0.15,'square'],[587,0.2,'square'],[523,0.2,'square'],
-            [494,0.4,'square'],[440,0.2,'square'],[494,0.2,'square'],[523,0.4,'square']
+            [392,0.15,'triangle'],[440,0.15,'triangle'],[494,0.2,'triangle'],[523,0.15,'triangle'],[494,0.15,'triangle'],
+            [440,0.2,'triangle'],[392,0.15,'triangle'],[440,0.15,'triangle'],[494,0.2,'triangle'],[523,0.15,'triangle'],
+            [587,0.2,'triangle'],[659,0.15,'triangle'],[587,0.15,'triangle'],[523,0.2,'triangle'],[494,0.15,'triangle'],
+            [440,0.2,'triangle'],[494,0.15,'triangle'],[523,0.2,'triangle'],[587,0.15,'triangle'],[659,0.3,'triangle'],
+            [587,0.15,'triangle'],[523,0.15,'triangle'],[587,0.2,'triangle'],[659,0.3,'triangle'],[784,0.4,'triangle'],
+            [659,0.2,'triangle'],[587,0.2,'triangle'],[523,0.3,'triangle'],[494,0.2,'triangle'],[440,0.3,'triangle'],
+            [392,0.15,'triangle'],[440,0.15,'triangle'],[494,0.2,'triangle'],[523,0.15,'triangle'],[587,0.2,'triangle'],
+            [659,0.3,'triangle'],[587,0.2,'triangle'],[523,0.2,'triangle'],[494,0.3,'triangle']
         ]
     },
-    silhouette: {
-        name: 'Naruto - Silhouette',
+    arkadasim: {
+        name: 'Barış Manço - Arkadaşım Eşek',
         notes: [
-            [392,0.15,'triangle'],[494,0.15,'triangle'],[523,0.2,'triangle'],[587,0.15,'triangle'],[659,0.2,'triangle'],
-            [523,0.15,'triangle'],[587,0.15,'triangle'],[659,0.25,'triangle'],[784,0.3,'triangle'],[659,0.15,'triangle'],
-            [784,0.15,'triangle'],[659,0.2,'triangle'],[587,0.2,'triangle'],[523,0.3,'triangle'],[494,0.15,'triangle'],
-            [523,0.15,'triangle'],[587,0.2,'triangle'],[523,0.15,'triangle'],[494,0.15,'triangle'],[440,0.3,'triangle'],
-            [392,0.2,'triangle'],[494,0.15,'triangle'],[523,0.2,'triangle'],[587,0.15,'triangle'],[659,0.3,'triangle'],
-            [784,0.15,'triangle'],[659,0.15,'triangle'],[784,0.2,'triangle'],[880,0.4,'triangle']
+            [349,0.2,'triangle'],[392,0.2,'triangle'],[440,0.25,'triangle'],[523,0.35,'triangle'],[440,0.15,'triangle'],
+            [392,0.15,'triangle'],[349,0.35,'triangle'],[349,0.15,'triangle'],[440,0.15,'triangle'],[523,0.2,'triangle'],
+            [587,0.25,'triangle'],[523,0.15,'triangle'],[440,0.15,'triangle'],[392,0.3,'triangle'],[440,0.2,'triangle'],
+            [523,0.2,'triangle'],[587,0.25,'triangle'],[659,0.3,'triangle'],[587,0.15,'triangle'],[523,0.15,'triangle'],
+            [440,0.3,'triangle'],[392,0.2,'triangle'],[349,0.2,'triangle'],[330,0.25,'triangle'],[349,0.2,'triangle'],
+            [392,0.2,'triangle'],[440,0.3,'triangle'],[523,0.3,'triangle'],[440,0.2,'triangle'],[392,0.2,'triangle'],
+            [349,0.4,'triangle']
         ]
     },
-    bluebird: {
-        name: 'Naruto - Blue Bird',
+    simarik: {
+        name: 'Tarkan - Şımarık',
         notes: [
-            [523,0.2,'triangle'],[659,0.2,'triangle'],[784,0.3,'triangle'],[784,0.15,'triangle'],[880,0.15,'triangle'],
-            [784,0.2,'triangle'],[659,0.2,'triangle'],[523,0.3,'triangle'],[659,0.2,'triangle'],[784,0.2,'triangle'],
-            [1047,0.3,'triangle'],[784,0.15,'triangle'],[659,0.15,'triangle'],[784,0.2,'triangle'],[659,0.2,'triangle'],
-            [523,0.4,'triangle'],[587,0.2,'triangle'],[659,0.2,'triangle'],[784,0.3,'triangle'],[659,0.15,'triangle'],
-            [784,0.15,'triangle'],[880,0.2,'triangle'],[1047,0.3,'triangle'],[880,0.15,'triangle'],[784,0.15,'triangle'],
-            [880,0.2,'triangle'],[784,0.2,'triangle'],[659,0.4,'triangle']
+            [494,0.15,'sine'],[554,0.15,'sine'],[587,0.2,'sine'],[659,0.15,'sine'],[587,0.15,'sine'],
+            [554,0.15,'sine'],[494,0.2,'sine'],[440,0.15,'sine'],[494,0.15,'sine'],[554,0.2,'sine'],
+            [587,0.15,'sine'],[659,0.2,'sine'],[587,0.15,'sine'],[554,0.15,'sine'],[494,0.2,'sine'],
+            [440,0.15,'sine'],[494,0.15,'sine'],[554,0.2,'sine'],[587,0.15,'sine'],[659,0.25,'sine'],
+            [784,0.15,'sine'],[659,0.15,'sine'],[587,0.2,'sine'],[554,0.15,'sine'],[494,0.2,'sine'],
+            [554,0.15,'sine'],[587,0.15,'sine'],[659,0.2,'sine'],[784,0.15,'sine'],[880,0.3,'sine'],
+            [784,0.15,'sine'],[659,0.15,'sine'],[587,0.2,'sine'],[659,0.2,'sine'],[494,0.3,'sine']
         ]
     },
-    narutoMain: {
-        name: 'Naruto Main Theme',
+    itirazim: {
+        name: 'Müslüm Gürses - İtirazım Var',
         notes: [
-            [262,0.3,'sine'],[330,0.3,'sine'],[392,0.4,'sine'],[330,0.2,'sine'],[392,0.2,'sine'],
-            [523,0.5,'sine'],[392,0.2,'sine'],[523,0.2,'sine'],[659,0.5,'sine'],[523,0.2,'sine'],
-            [659,0.2,'sine'],[784,0.4,'sine'],[659,0.2,'sine'],[784,0.2,'sine'],[1047,0.6,'sine'],
-            [784,0.3,'sine'],[659,0.3,'sine'],[523,0.4,'sine'],[392,0.3,'sine'],[523,0.3,'sine'],
-            [659,0.5,'sine'],[784,0.3,'sine'],[1047,0.4,'sine'],[784,0.3,'sine'],[1047,0.3,'sine'],
-            [784,0.4,'sine'],[659,0.4,'sine'],[523,0.6,'sine']
+            [311,0.25,'sine'],[370,0.2,'sine'],[392,0.2,'sine'],[440,0.3,'sine'],[392,0.15,'sine'],
+            [370,0.15,'sine'],[311,0.35,'sine'],[311,0.2,'sine'],[370,0.2,'sine'],[392,0.2,'sine'],
+            [440,0.25,'sine'],[494,0.2,'sine'],[440,0.15,'sine'],[392,0.2,'sine'],[370,0.15,'sine'],
+            [311,0.3,'sine'],[370,0.2,'sine'],[392,0.2,'sine'],[440,0.25,'sine'],[494,0.2,'sine'],
+            [523,0.2,'sine'],[494,0.15,'sine'],[440,0.2,'sine'],[392,0.15,'sine'],[370,0.2,'sine'],
+            [311,0.3,'sine'],[294,0.2,'sine'],[311,0.2,'sine'],[370,0.3,'sine'],[392,0.3,'sine'],
+            [440,0.3,'sine'],[392,0.2,'sine'],[370,0.2,'sine'],[311,0.4,'sine']
         ]
     },
-    tarkan: {
-        name: 'Tarkan - Yolla',
+    gulumsememis: {
+        name: 'Sezen Aksu - Gülümse',
         notes: [
-            [440,0.2,'triangle'],[494,0.2,'triangle'],[523,0.3,'triangle'],[494,0.15,'triangle'],[523,0.15,'triangle'],
-            [587,0.3,'triangle'],[523,0.2,'triangle'],[494,0.2,'triangle'],[440,0.3,'triangle'],[392,0.2,'triangle'],
-            [440,0.2,'triangle'],[494,0.3,'triangle'],[523,0.2,'triangle'],[587,0.2,'triangle'],[659,0.4,'triangle'],
-            [587,0.2,'triangle'],[659,0.2,'triangle'],[587,0.3,'triangle'],[523,0.2,'triangle'],[494,0.2,'triangle'],
-            [523,0.4,'triangle'],[440,0.2,'triangle'],[494,0.2,'triangle'],[523,0.3,'triangle'],[587,0.2,'triangle'],
-            [659,0.2,'triangle'],[784,0.5,'triangle']
+            [392,0.2,'triangle'],[440,0.2,'triangle'],[523,0.3,'triangle'],[494,0.15,'triangle'],[523,0.15,'triangle'],
+            [587,0.25,'triangle'],[659,0.2,'triangle'],[587,0.15,'triangle'],[523,0.2,'triangle'],[494,0.15,'triangle'],
+            [440,0.3,'triangle'],[392,0.2,'triangle'],[440,0.2,'triangle'],[494,0.25,'triangle'],[523,0.2,'triangle'],
+            [587,0.25,'triangle'],[523,0.15,'triangle'],[494,0.15,'triangle'],[440,0.2,'triangle'],[392,0.15,'triangle'],
+            [349,0.3,'triangle'],[392,0.2,'triangle'],[440,0.2,'triangle'],[494,0.25,'triangle'],[523,0.2,'triangle'],
+            [587,0.3,'triangle'],[659,0.3,'triangle'],[587,0.2,'triangle'],[523,0.2,'triangle'],[494,0.3,'triangle']
         ]
     },
-    turkish: {
-        name: '🇹🇷 Türkçe Pop',
+    duman: {
+        name: 'Duman - Haberin Yok Ölüyorum',
         notes: [
-            [392,0.15,'sine'],[440,0.15,'sine'],[494,0.2,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],
-            [523,0.15,'sine'],[494,0.15,'sine'],[440,0.2,'sine'],[392,0.15,'sine'],[440,0.15,'sine'],
-            [494,0.2,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],[659,0.15,'sine'],[587,0.15,'sine'],
-            [523,0.2,'sine'],[494,0.15,'sine'],[523,0.15,'sine'],[587,0.2,'sine'],[659,0.15,'sine'],
-            [784,0.3,'sine'],[659,0.15,'sine'],[587,0.15,'sine'],[523,0.2,'sine'],[494,0.2,'sine'],
-            [440,0.3,'sine']
+            [220,0.25,'sawtooth'],[262,0.2,'sawtooth'],[294,0.2,'sawtooth'],[330,0.3,'sawtooth'],
+            [392,0.2,'sawtooth'],[330,0.15,'sawtooth'],[294,0.15,'sawtooth'],[262,0.3,'sawtooth'],
+            [220,0.2,'sawtooth'],[262,0.2,'sawtooth'],[294,0.2,'sawtooth'],[330,0.25,'sawtooth'],
+            [392,0.2,'sawtooth'],[440,0.2,'sawtooth'],[392,0.15,'sawtooth'],[330,0.2,'sawtooth'],
+            [294,0.15,'sawtooth'],[262,0.3,'sawtooth'],[294,0.2,'sawtooth'],[330,0.2,'sawtooth'],
+            [392,0.25,'sawtooth'],[440,0.2,'sawtooth'],[392,0.15,'sawtooth'],[330,0.2,'sawtooth'],
+            [294,0.15,'sawtooth'],[262,0.3,'sawtooth'],[330,0.2,'sawtooth'],[294,0.2,'sawtooth'],
+            [262,0.3,'sawtooth'],[220,0.4,'sawtooth']
+        ]
+    },
+    hadise: {
+        name: 'Hadise - Dum Tek Tek',
+        notes: [
+            [523,0.15,'square'],[587,0.15,'square'],[659,0.2,'square'],[587,0.15,'square'],[659,0.15,'square'],
+            [784,0.25,'square'],[659,0.15,'square'],[587,0.15,'square'],[523,0.2,'square'],[494,0.15,'square'],
+            [523,0.15,'square'],[587,0.2,'square'],[659,0.15,'square'],[784,0.25,'square'],[880,0.15,'square'],
+            [784,0.15,'square'],[659,0.2,'square'],[587,0.15,'square'],[523,0.2,'square'],[659,0.15,'square'],
+            [784,0.15,'square'],[880,0.25,'square'],[1047,0.2,'square'],[880,0.15,'square'],[784,0.15,'square'],
+            [659,0.2,'square'],[587,0.15,'square'],[523,0.15,'square'],[494,0.2,'square'],[523,0.3,'square']
+        ]
+    },
+    mfo: {
+        name: 'MFÖ - Yandık',
+        notes: [
+            [294,0.2,'triangle'],[349,0.2,'triangle'],[392,0.3,'triangle'],[349,0.15,'triangle'],[392,0.15,'triangle'],
+            [440,0.25,'triangle'],[523,0.2,'triangle'],[440,0.15,'triangle'],[392,0.2,'triangle'],[349,0.15,'triangle'],
+            [294,0.3,'triangle'],[349,0.2,'triangle'],[392,0.2,'triangle'],[440,0.25,'triangle'],[523,0.2,'triangle'],
+            [587,0.25,'triangle'],[523,0.15,'triangle'],[440,0.15,'triangle'],[392,0.2,'triangle'],[349,0.15,'triangle'],
+            [294,0.3,'triangle'],[392,0.2,'triangle'],[349,0.2,'triangle'],[392,0.2,'triangle'],[440,0.3,'triangle'],
+            [523,0.3,'triangle'],[440,0.2,'triangle'],[392,0.2,'triangle'],[349,0.3,'triangle']
         ]
     }
 };
@@ -538,6 +569,7 @@ let foods = [];
 let spikes = [];
 let particles = [];
 let camera = { x: 0, y: 0 };
+let cameraZoom = 1;
 let mouseX = W / 2, mouseY = H / 2;
 let gameRunning = true;
 let kills = 0;
@@ -1061,10 +1093,11 @@ function updateGame() {
         stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN * (16/1000));
     }
 
-    // En büyük parçayı kamera takip etsin
+    // En büyük parçayı kamera takip etsin, büyüdükçe kamera açılsın
     const mainPiece = playerPieces.reduce((a,b) => (!a.alive || (b.alive && b.radius > a.radius)) ? b : a, playerPieces[0]);
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
+    cameraZoom = Math.max(0.25, Math.min(1.2, 65 / (mainPiece.radius + 35)));
 
     // Yiyecek yeme (tüm parçalar) - büyütür ve skor artar
     for (const piece of playerPieces) {
@@ -1172,7 +1205,7 @@ function updateGame() {
                 kills++;
                 createParticles(bot.x,bot.y,bot.color,15);
                 playKillSound();
-                if (bot.skin === 'naruto') playSong('naruto1');
+                if (bot.skin === 'naruto') playSong('simarik');
                 setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
             }
             if (bot.canEat(piece)) {
@@ -1520,6 +1553,13 @@ function broadcastState() {
 // ========== ÇİZİM ==========
 function draw() {
     ctx.clearRect(0, 0, W, H);
+    
+    // Boyuta göre zoom
+    ctx.save();
+    ctx.translate(W/2, H/2);
+    ctx.scale(cameraZoom, cameraZoom);
+    ctx.translate(-W/2, -H/2);
+
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, W, H);
 
@@ -1627,6 +1667,7 @@ function draw() {
             ctx.restore();
         }
     }
+    ctx.restore();
 }
 
 function gameLoop() {
@@ -1746,7 +1787,7 @@ document.querySelectorAll('.sk-btn').forEach(el => {
         el.classList.add('active');
         skinName = el.dataset.skin;
         for (const p of playerPieces) if (p.alive) p.skin = skinName;
-        if (skinName === 'naruto') playSong('naruto1');
+        if (skinName === 'naruto') playSong('simarik');
         document.getElementById('skinPanel').classList.remove('open');
     });
 });
