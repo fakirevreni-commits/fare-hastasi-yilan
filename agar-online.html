@@ -540,6 +540,26 @@ class Spike {
         this.angle = Math.random() * Math.PI * 2;
         this.rotation = 0;
         this.pulse = 0;
+        this.foodTimer = 0;
+    }
+
+    update(dt) {
+        this.foodTimer += dt;
+        if (this.foodTimer > 4000 + Math.random() * 3000) {
+            this.foodTimer = 0;
+            // Yem saç
+            for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
+                const a = Math.random() * Math.PI * 2;
+                const dist = this.radius + 20 + Math.random() * 80;
+                foods.push(new Food(
+                    this.x + Math.cos(a) * dist,
+                    this.y + Math.sin(a) * dist,
+                    4 + Math.random() * 4
+                ));
+            }
+            return true;
+        }
+        return false;
     }
     draw(ctx, cam) {
         const sx = this.x - cam.x, sy = this.y - cam.y;
@@ -681,16 +701,17 @@ function splitPlayer() {
     updateUI();
 }
 
-function hitSpike(cell) {
+function hitSpikeByScore(cell) {
     if (!cell.alive || cell.radius < MIN_SPLIT_RADIUS * 2) return;
+
+    const pieceCount = Math.min(5, Math.max(2, Math.floor(totalScore / 100)));
     const mass = cell.mass;
-    const count = Math.min(5, Math.max(2, Math.floor(cell.radius / (MIN_SPLIT_RADIUS * 1.2))));
-    const pieceMass = mass / count;
+    const pieceMass = mass / pieceCount;
     if (pieceMass < MIN_SPLIT_RADIUS * MIN_SPLIT_RADIUS * Math.PI) return;
 
     const newPieces = [];
-    for (let i = 0; i < count; i++) {
-        const a = (Math.PI*2*i)/count + Math.random()*0.4;
+    for (let i = 0; i < pieceCount; i++) {
+        const a = (Math.PI*2*i)/pieceCount + Math.random()*0.4;
         const dist = cell.radius + 8;
         const r = Math.max(MIN_SPLIT_RADIUS, Math.sqrt(pieceMass / Math.PI));
         const p = new Cell(cell.x + Math.cos(a)*dist, cell.y + Math.sin(a)*dist, r, cell.isPlayer);
@@ -876,19 +897,19 @@ function updateGame() {
         }
     }
 
-    // Diken çarpışması
+    // Diken çarpışması - küçükse geç, büyükse skora göre bölün
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         for (const spike of spikes) {
-            if (piece.distTo(spike) < piece.radius + spike.radius) {
-                hitSpike(piece);
-                // Diken yiyecek saçar
-                for (let i = 0; i < 8; i++) {
-                    const a = Math.random()*Math.PI*2;
-                    const dist = 30 + Math.random()*60;
-                    foods.push(new Food(spike.x+Math.cos(a)*dist, spike.y+Math.sin(a)*dist, 4+Math.random()*4));
+            const dist = piece.distTo(spike);
+            if (dist < piece.radius + spike.radius) {
+                if (piece.radius < spike.radius) {
+                    // Küçükse hiçbir şey olmaz, içinden geçer
+                } else {
+                    // Büyükse skora göre bölün
+                    hitSpikeByScore(piece);
+                    createParticles(spike.x, spike.y, '#ff6b35', 10);
                 }
-                createParticles(spike.x, spike.y, '#ff6b35', 15);
                 break;
             }
         }
@@ -897,15 +918,19 @@ function updateGame() {
         if (!bot.alive) continue;
         for (const spike of spikes) {
             if (bot.distTo(spike) < bot.radius + spike.radius) {
-                hitSpike(bot);
-                for (let i = 0; i < 5; i++) {
-                    const a = Math.random()*Math.PI*2;
-                    const dist = 20+Math.random()*40;
-                    foods.push(new Food(spike.x+Math.cos(a)*dist, spike.y+Math.sin(a)*dist, 3+Math.random()*3));
+                if (bot.radius < spike.radius) {
+                    // küçükse geç
+                } else {
+                    hitSpikeByScore(bot);
                 }
                 break;
             }
         }
+    }
+
+    // Dikenlerin yem atması
+    for (const spike of spikes) {
+        spike.update(16);
     }
 
     // Kara delik sistemi
