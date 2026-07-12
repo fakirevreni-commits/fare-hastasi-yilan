@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>🟣 baba.io - Hücre Savaşı</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -224,6 +225,8 @@
 <body>
 
 <canvas id="gameCanvas"></canvas>
+<div id="ytPlayer" style="display:none"></div>
+<div id="musicStatus" style="position:fixed;bottom:105px;left:50%;transform:translateX(-50%);z-index:10;font-size:0.7rem;color:rgba(78,205,196,0.5);pointer-events:none;text-align:center"></div>
 
 <div id="ui">
     <div id="scoreTop">
@@ -295,25 +298,27 @@
 <div class="modal" id="songModal">
     <div class="modal-box">
         <h2>🎵 Şarkı Seç</h2>
-        <p>Beğendiğin şarkıyı seç, kısa bir bölüm çalsın.</p>
-        <div id="songList" style="display:flex;flex-direction:column;gap:8px;margin:15px 0">
-            <button class="btn-p" data-song="epic" style="width:100%">⚔️ Epik Savaş</button>
-            <button class="btn-p" data-song="naruto" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300)">🍥 Naruto - Main Theme</button>
-            <button class="btn-p" data-song="retro" style="width:100%;background:linear-gradient(135deg,#00ff88,#00ccff)">🕹️ Retro Oyun</button>
-            <button class="btn-p" data-song="piano" style="width:100%;background:linear-gradient(135deg,#a855f7,#7c3aed)">🎹 Piyano</button>
-            <button class="btn-p" data-song="turkish" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316)">🇹🇷 Türkçe Pop</button>
+        <p style="font-size:0.8rem">YouTube'dan Naruto opening ve popüler şarkılar</p>
+        <div id="songList" style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
+            <button class="btn-p" data-yt="dlFA0Zq1k2A" style="width:100%;background:linear-gradient(135deg,#ff6b35,#cc3300)">🍥 Naruto - Silhouette (KANA-BOON)</button>
+            <button class="btn-p" data-yt="2upuBiEiXDk" style="width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7)">🐦 Naruto - Blue Bird</button>
+            <button class="btn-p" data-yt="_GOZDXq7I-I" style="width:100%;background:linear-gradient(135deg,#f6d365,#f97316)">🇹🇷 Tarkan - Yolla</button>
+            <button class="btn-p" data-yt="X3Wv0Y72GrI" style="width:100%;background:linear-gradient(135deg,#e91e63,#c2185b)">🎤 Aleyna Tilki - Sen Olsan Bari</button>
+            <button class="btn-p" data-yt="LJ9FpMXJmwY" style="width:100%;background:linear-gradient(135deg,#9c27b0,#7b1fa2)">🎵 Tarkan - Ölürüm Sana</button>
+            <button class="btn-p" data-yt="NAHRpEqgcL4" style="width:100%;background:linear-gradient(135deg,#4caf50,#388e3c)">💫 Tarkan - Kuzu Kuzu</button>
+            <button class="btn-s" data-action="stop" style="width:100%">⏹ Durdur</button>
         </div>
         <div class="sep"></div>
-        <div style="margin:10px 0">
-            <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:8px">🔗 Özel Müzik (link veya dosya)</div>
-            <input type="text" id="customSongUrl" placeholder="Müzik linki (MP3/OGG)..." style="width:100%;padding:10px 12px;border:2px solid rgba(78,205,196,0.2);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;font-size:0.85rem;text-align:center;outline:none;margin-bottom:8px">
-            <div style="display:flex;gap:8px">
-                <button class="btn-s" id="btnPlayUrl" style="flex:1">▶ Linki Çal</button>
-                <button class="btn-s" id="btnUploadMusic" style="flex:1">📁 Dosya Yükle</button>
+        <div style="margin:8px 0">
+            <div style="color:#a0aec0;font-size:0.75rem;margin-bottom:6px">🔗 Özel YouTube linki veya MP3 dosyası</div>
+            <input type="text" id="customSongUrl" placeholder="YouTube linki..." style="width:100%;padding:10px 12px;border:2px solid rgba(78,205,196,0.2);border-radius:10px;background:rgba(0,0,0,0.4);color:#e2e8f0;font-size:0.85rem;text-align:center;outline:none;margin-bottom:6px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-s" id="btnPlayUrl" style="flex:1">▶ YouTube Linki Çal</button>
+                <button class="btn-s" id="btnUploadMusic" style="flex:1">📁 MP3 Yükle</button>
             </div>
             <input type="file" id="musicFileInput" accept="audio/*" style="display:none">
         </div>
-        <button class="btn-s" id="btnCloseSong" style="width:100%;margin-top:5px">Kapat</button>
+        <button class="btn-s" id="btnCloseSong" style="width:100%;margin-top:3px">Kapat</button>
     </div>
 </div>
 
@@ -370,24 +375,51 @@ function playNote(freq, dur, type = 'sine', vol = 0.1, delay = 0) {
     } catch(e) {}
 }
 
-const SONGS = {
-    epic: { name: '⚔️ Epik Savaş', notes: [392,523,659,784,659,523,392,330,392,523,659,784,1047], dur: [0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.5], type: 'sawtooth' },
-    naruto: { name: '🍥 Naruto', notes: [262,330,392,523,392,523,659,523,392,330,262,392,523,659,784,659,523,392], dur: [0.15,0.15,0.15,0.25,0.15,0.15,0.25,0.15,0.15,0.15,0.3,0.15,0.15,0.15,0.25,0.15,0.15,0.4], type: 'triangle' },
-    retro: { name: '🕹️ Retro', notes: [523,523,0,523,0,415,523,0,659,0,784,0,659,0,523,0], dur: [0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.1,0.15,0.1,0.15,0.1,0.15,0.1,0.2,0.3], type: 'square' },
-    piano: { name: '🎹 Piyano', notes: [262,330,392,523,659,784,1047,784,659,523,392,330,262], dur: [0.3,0.3,0.3,0.3,0.3,0.3,0.5,0.3,0.3,0.3,0.3,0.3,0.6], type: 'sine' },
-    turkish: { name: '🇹🇷 Türkçe', notes: [440,494,523,587,659,523,587,659,784,659,523,440,494,523,440], dur: [0.2,0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.3,0.2,0.2,0.2,0.2,0.2,0.4], type: 'triangle' }
-};
+// ========== YOUTUBE MÜZİK SİSTEMİ ==========
+let ytPlayer = null;
+let ytReady = false;
+let currentSongName = '';
 
-function playSong(name) {
-    const song = SONGS[name];
-    if (!song) return;
-    let t = 0;
-    song.notes.forEach((freq, i) => {
-        if (freq > 0) playNote(freq, song.dur[i] || 0.2, song.type, 0.1, t);
-        t += (song.dur[i] || 0.2) + 0.02;
+function onYouTubeIframeAPIReady() {
+    ytPlayer = new YT.Player('ytPlayer', {
+        height: '0', width: '0',
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
+        events: {
+            onReady: () => { ytReady = true; },
+            onStateChange: e => {
+                if (e.data === YT.PlayerState.ENDED) {
+                    document.getElementById('musicStatus').textContent = '';
+                }
+            }
+        }
     });
 }
 
+function playYTVideo(videoId) {
+    if (!ytReady || !ytPlayer) { alert('YouTube yükleniyor, biraz bekle...'); return; }
+    stopAudio();
+    stopYTAudio();
+    try {
+        ytPlayer.loadVideoById(videoId);
+        ytPlayer.setVolume(30);
+        ytPlayer.playVideo();
+        currentSongName = videoId;
+        document.getElementById('musicStatus').textContent = '🎵 YouTube çalıyor...';
+    } catch(e) { alert('Video oynatılamadı.'); }
+}
+
+function playYoutubeUrl(url) {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (match) { playYTVideo(match[1]); return true; }
+    return false;
+}
+
+function stopYTAudio() {
+    try { if (ytPlayer && ytReady) ytPlayer.stopVideo(); } catch(e){}
+    document.getElementById('musicStatus').textContent = '';
+}
+
+// Web Audio API - sadece efekt sesleri için
 function playEatSound() {
     playNote(500 + Math.random() * 200, 0.1, 'sine', 0.08);
 }
@@ -432,6 +464,9 @@ let blackHoleNotification = false;
 let totalScore = 0;
 let userImage = null;
 let userImageLoaded = false;
+
+// ========== BOT İSİMLERİ (TÜRKÇE) ==========
+const TURKISH_NAMES = ['Alper','Burak','Can','Deniz','Efe','Fırat','Göktuğ','Hakan','Ilgaz','Jale','Kaan','Levent','Mert','Nazlı','Orhan','Pelin','Reşat','Selin','Tuğçe','Uğur','Volkan','Yeliz','Zeynep','Ahmet','Ayşe','Mehmet','Fatma','Ali','Veli','Selim','Ceren','Elif','Onur','Berk','Çağrı','Duru','Ekin','Gizem','Hande','Işık','Kerem','Merve','Ozan','Pınar','Serkan','Tolga','Ufuk','Yavuz']; 
 
 // ========== SINIFLAR ==========
 class Cell {
@@ -671,11 +706,10 @@ function initGame() {
     gameRunning = true;
 
     bots = [];
-    const names = ['Alpha','Beta','Gamma','Delta','Echo','Fox','Ghost','Hawk','Ice','Jade','King','Lion','Mist','Nova','Odin','Puma','Raven','Storm','Tiger','Venom','Wolf','Xeno','Zero'];
     for (let i = 0; i < BOT_COUNT; i++) {
-        if (isHost || !peer) { // only spawn bots in offline or host mode
+        if (isHost || !peer) {
             const b = new Cell(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, 15+Math.random()*18);
-            b.name = names[Math.floor(Math.random()*names.length)];
+            b.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)];
             b.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)];
             b.targetX = Math.random()*WORLD_SIZE; b.targetY = Math.random()*WORLD_SIZE;
             bots.push(b);
@@ -817,14 +851,13 @@ function updateGame() {
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
 
-    // Yiyecek yeme (tüm parçalar) - az miktar büyütür, bol puan verir
+    // Yiyecek yeme (tüm parçalar) - büyütür ve skor artar
     for (const piece of playerPieces) {
         if (!piece.alive) continue;
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
-                piece.radius += Math.max(0.5, f.radius * 0.15);
-                totalScore += Math.round(f.radius * 5);
+                piece.radius += Math.max(0.3, f.radius * 0.12);
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -837,7 +870,7 @@ function updateGame() {
         for (let i = foods.length-1; i >= 0; i--) {
             const f = foods[i];
             if (Math.sqrt((bot.x-f.x)**2+(bot.y-f.y)**2) < bot.radius) {
-                bot.radius += Math.max(0.5, f.radius * 0.15);
+                bot.radius += Math.max(0.3, f.radius * 0.12);
                 foods.splice(i,1);
                 spawnFood();
             }
@@ -898,7 +931,7 @@ function updateGame() {
                 bot.radius += other.radius*0.4;
                 other.alive = false;
                 createParticles(other.x,other.y,other.color,12);
-                setTimeout(() => { if (!other.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 4000);
+                setTimeout(() => { if (!other.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 4000);
             }
         }
     }
@@ -911,13 +944,12 @@ function updateGame() {
             if (piece.canEat(bot)) {
                 const growth = bot.radius * 0.6;
                 piece.radius += growth;
-                totalScore += Math.round(growth * 5);
                 bot.alive = false;
                 kills++;
                 createParticles(bot.x,bot.y,bot.color,15);
                 playKillSound();
-                if (bot.skin === 'naruto') playSong('naruto');
-                setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = names[Math.floor(Math.random()*names.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
+                if (bot.skin === 'naruto') playYTVideo('dlFA0Zq1k2A');
+                setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
             }
             if (bot.canEat(piece)) {
                 bot.radius += piece.radius*0.5;
@@ -998,7 +1030,6 @@ function updateGame() {
             const dy = p.y - blackHole.y;
             if (dx*dx + dy*dy < (p.radius + blackHole.radius) * (p.radius + blackHole.radius)) {
                 p.radius += 10;
-                totalScore += 500;
                 for (let j = 0; j < 30; j++) particles.push(new Particle(blackHole.x, blackHole.y, '#a855f7', 3+Math.random()*4));
                 try { playKillSound(); } catch(e){}
                 hit = true;
@@ -1021,11 +1052,10 @@ function updateGame() {
     // Parçacıklar
     particles = particles.filter(p => p.update());
 
-    // Skor - biriken toplam skor
-    let totalRadius = 0;
-    for (const p of playerPieces) if (p.alive) totalRadius += p.radius;
-    // totalScore zaten yiyeceklerden birikiyor, radius ve kill bonusu ekle
-    totalScore = Math.max(totalScore, Math.round(totalRadius * 5 + kills * 50));
+    // Skor - agar.io stili (kütle = π × r²)
+    let totalMass = 0;
+    for (const p of playerPieces) if (p.alive) totalMass += Math.PI * p.radius * p.radius;
+    totalScore = Math.round(totalMass / 10);
     document.getElementById('scoreDisplay').textContent = totalScore.toLocaleString('tr-TR');
 
     updateUI();
@@ -1061,7 +1091,7 @@ function updateUI() {
 function updateLeaderboard() {
     const entries = [];
 
-    // Oyuncu - ana skor (totalScore) kullan
+    // Oyuncu - kütle tabanlı skor
     let playerTotalR = 0;
     for (const p of playerPieces) if (p.alive) playerTotalR += p.radius;
     entries.push({ name: `👤 ${userName}`, score: totalScore, isMe: true });
@@ -1069,7 +1099,8 @@ function updateLeaderboard() {
     // Online oyuncular
     for (const [id, op] of Object.entries(onlinePlayers)) {
         if (op.alive !== false) {
-            entries.push({ name: op.name || id.slice(0,6), score: Math.round((op.totalRadius||op.radius||20) * 2.5), isMe: false });
+            const r = op.totalRadius || op.radius || 20;
+            entries.push({ name: op.name || id.slice(0,6), score: Math.round(Math.PI * r * r / 10), isMe: false });
         }
     }
 
@@ -1077,7 +1108,7 @@ function updateLeaderboard() {
     for (const bot of bots) {
         if (bot.alive) {
             const emoji = bot.skin === 'naruto' ? '🍥' : bot.skin === 'glow' ? '✨' : '🔵';
-            entries.push({ name: `${emoji} ${bot.name}`, score: Math.round(bot.radius * 2.5), isMe: false });
+            entries.push({ name: `${emoji} ${bot.name}`, score: Math.round(Math.PI * bot.radius * bot.radius / 10), isMe: false });
         }
     }
 
@@ -1318,7 +1349,7 @@ document.querySelectorAll('.sk-btn').forEach(el => {
         el.classList.add('active');
         skinName = el.dataset.skin;
         for (const p of playerPieces) if (p.alive) p.skin = skinName;
-        if (skinName === 'naruto') playSong('naruto');
+        if (skinName === 'naruto') playYTVideo('dlFA0Zq1k2A');
         document.getElementById('skinPanel').classList.remove('open');
     });
 });
@@ -1335,8 +1366,10 @@ document.getElementById('btnSong').addEventListener('click', () => {
 
 document.querySelectorAll('#songList button').forEach(el => {
     el.addEventListener('click', () => {
-        const song = el.dataset.song;
-        playSong(song);
+        const yt = el.dataset.yt;
+        const action = el.dataset.action;
+        if (action === 'stop') { stopYTAudio(); document.getElementById('musicStatus').textContent = ''; }
+        else if (yt) { playYTVideo(yt); }
     });
 });
 
@@ -1346,15 +1379,19 @@ document.getElementById('btnCloseSong').addEventListener('click', () => {
 
 // Özel müzik çalma
 let currentAudio = null;
-function stopAudio() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } }
+function stopAudio() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } stopYTAudio(); }
 
 document.getElementById('btnPlayUrl').addEventListener('click', () => {
     const url = document.getElementById('customSongUrl').value.trim();
     if (!url) return;
+    // Önce YouTube linki mi kontrol et
+    if (playYoutubeUrl(url)) return;
+    // Değilse direkt audio olarak dene
+    stopYTAudio();
     stopAudio();
     currentAudio = new Audio(url);
     currentAudio.volume = 0.3;
-    currentAudio.play().catch(() => alert('Bu link çalınamadı. Geçerli bir müzik linki olduğundan emin ol.'));
+    currentAudio.play().catch(() => alert('Bu link çalınamadı. Geçerli bir YouTube veya MP3 linki girin.'));
 });
 
 document.getElementById('btnUploadMusic').addEventListener('click', () => {
