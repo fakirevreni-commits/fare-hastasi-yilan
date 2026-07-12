@@ -325,15 +325,6 @@
     <div class="game-wrapper">
         <div style="position:relative;display:inline-block;width:100%;max-width:600px;margin:0 auto">
         <canvas id="gameCanvas" width="600" height="600" tabindex="0"></canvas>
-        <!-- Mobil dokunmatik yön tuşları -->
-        <div id="touchControls" style="position:absolute;bottom:15px;left:50%;transform:translateX(-50%);width:180px;height:180px;display:none;z-index:10">
-            <button ontouchstart="event.stopPropagation();setDir({x:0,y:-1})" style="position:absolute;top:0;left:60px;width:60px;height:60px;background:rgba(78,205,196,0.25);border:2px solid rgba(78,205,196,0.5);border-radius:12px;color:#4ecdc4;font-size:1.8rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0">↑</button>
-            <button ontouchstart="event.stopPropagation();setDir({x:0,y:1})" style="position:absolute;bottom:0;left:60px;width:60px;height:60px;background:rgba(78,205,196,0.25);border:2px solid rgba(78,205,196,0.5);border-radius:12px;color:#4ecdc4;font-size:1.8rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0">↓</button>
-            <button ontouchstart="event.stopPropagation();setDir({x:-1,y:0})" style="position:absolute;top:60px;left:0;width:60px;height:60px;background:rgba(78,205,196,0.25);border:2px solid rgba(78,205,196,0.5);border-radius:12px;color:#4ecdc4;font-size:1.8rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0">←</button>
-            <button ontouchstart="event.stopPropagation();setDir({x:1,y:0})" style="position:absolute;top:60px;right:0;width:60px;height:60px;background:rgba(78,205,196,0.25);border:2px solid rgba(78,205,196,0.5);border-radius:12px;color:#4ecdc4;font-size:1.8rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0">→</button>
-        </div>
-        <!-- Mobil duraklat tuşu -->
-        <button id="mobilePauseBtn" ontouchstart="event.stopPropagation();togglePause()" style="position:absolute;top:10px;right:10px;width:44px;height:44px;background:rgba(78,205,196,0.2);border:2px solid rgba(78,205,196,0.4);border-radius:50%;color:#4ecdc4;font-size:1.2rem;display:none;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0;cursor:pointer">⏸</button>
     </div>
         <div class="hint">
             <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> hareket &nbsp;|&nbsp;
@@ -941,13 +932,7 @@ document.getElementById('menuQuit').addEventListener('click', () => { menuOverla
 // Seviye atlama
 document.getElementById('btnCont').addEventListener('click', () => { levelUpOverlay.classList.remove('active'); paused=false; canvas.focus(); });
 
-// Mobil kontrolleri göster
-if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    document.getElementById('touchControls').style.display = 'block';
-    document.getElementById('mobilePauseBtn').style.display = 'flex';
-}
-
-// Canvas click & touch - oyun başlat
+// Canvas click - oyun başlat
 canvas.addEventListener('click', () => { canvas.focus(); if (!running || over) startGame(); });
 
 // Dokunmatik kaydırma
@@ -962,6 +947,50 @@ canvas.addEventListener('touchend', e => {
     if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx)>25) setDir({x:dx>0?1:-1,y:0}); }
     else { if (Math.abs(dy)>25) setDir({x:0,y:dy>0?1:-1}); }
 }, {passive:true});
+
+// Mobil ekran kontrolleri (canvas üzerinde yön tuşları)
+function initMobileControls() {
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'touchControls';
+    wrap.style.cssText = 'position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:170px;height:170px;z-index:10;pointer-events:none';
+
+    const pauseBtn = document.createElement('button');
+    pauseBtn.id = 'mobilePauseBtn';
+    pauseBtn.textContent = '⏸';
+    pauseBtn.style.cssText = 'position:absolute;top:8px;right:8px;width:40px;height:40px;background:rgba(78,205,196,0.2);border:2px solid rgba(78,205,196,0.4);border-radius:50%;color:#4ecdc4;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0;cursor:pointer;pointer-events:auto';
+    pauseBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); togglePause(); });
+    pauseBtn.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+    parent.appendChild(pauseBtn);
+
+    const dirs = [
+        { x:0, y:-1, label:'↑', top:'0', left:'57px' },
+        { x:0, y:1,  label:'↓', bottom:'0', left:'57px' },
+        { x:-1, y:0, label:'←', top:'57px', left:'0' },
+        { x:1, y:0,  label:'→', top:'57px', right:'0' }
+    ];
+
+    dirs.forEach(d => {
+        const btn = document.createElement('button');
+        btn.textContent = d.label;
+        const s = 'width:56px;height:56px;background:rgba(78,205,196,0.2);border:2px solid rgba(78,205,196,0.4);border-radius:12px;color:#4ecdc4;font-size:1.5rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;padding:0;cursor:pointer;position:absolute;pointer-events:auto';
+        btn.style.cssText = s + Object.entries(d).filter(([k]) => k!=='label').map(([k,v]) => `${k}:${v}`).join(';');
+        btn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (!running || over) startGame(); setDir(d); });
+        btn.addEventListener('click', e => { e.stopPropagation(); if (!running || over) startGame(); setDir(d); });
+        wrap.appendChild(btn);
+    });
+
+    parent.appendChild(wrap);
+
+    // Pause butonunu wrap'in üstünde tut
+    parent.style.position = 'relative';
+}
+
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    initMobileControls();
+}
 
 // ========== BAŞLAT ==========
 highScore = loadScores().length ? loadScores()[0].score : 0;
