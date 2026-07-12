@@ -965,53 +965,46 @@ function updateGame() {
         spike.update(16);
     }
 
-    // Kara delik sistemi
-    if (!blackHoleActive && !blackHole && Date.now() - blackHoleTimer > BLACK_HOLE_INTERVAL) {
-        // Oyuncudan olabildiğince uzak bir konum seç
-        let bhx, bhy;
+    // Kara delik sistemi (basit)
+    const now = Date.now();
+    if (!blackHoleActive && now - blackHoleTimer > BLACK_HOLE_INTERVAL) {
         if (player) {
-            const angles = [0, Math.PI/2, Math.PI, Math.PI*1.5];
-            const a = angles[Math.floor(Math.random() * 4)];
-            const dist = 1500 + Math.random() * 800;
-            bhx = player.x + Math.cos(a) * dist;
-            bhy = player.y + Math.sin(a) * dist;
-        } else {
-            bhx = Math.random() * WORLD_SIZE;
-            bhy = Math.random() * WORLD_SIZE;
+            const a = Math.random() * Math.PI * 2;
+            const d = 1500 + Math.random() * 800;
+            blackHole = {
+                x: Math.max(100, Math.min(WORLD_SIZE-100, player.x + Math.cos(a)*d)),
+                y: Math.max(100, Math.min(WORLD_SIZE-100, player.y + Math.sin(a)*d)),
+                radius: 55 + Math.random() * 15,
+                pulse: 0
+            };
+            blackHoleActive = true;
+            blackHoleNotification = true;
+            blackHoleTimer = now;
+            setTimeout(() => { try { blackHoleNotification = false; } catch(e){} }, 6000);
         }
-        bhx = Math.max(100, Math.min(WORLD_SIZE-100, bhx));
-        bhy = Math.max(100, Math.min(WORLD_SIZE-100, bhy));
-        blackHole = { x: bhx, y: bhy, radius: 50 + Math.random() * 20, pulse: 0 };
-        blackHoleActive = true;
-        blackHoleNotification = true;
-        blackHoleTimer = Date.now();
-        setTimeout(() => { blackHoleNotification = false; }, 6000);
     }
 
-    // Bildirim göster/gizle
     const notif = document.getElementById('notifArea');
-    if (notif) notif.style.display = (blackHoleNotification && blackHoleActive && blackHole) ? 'block' : 'none';
+    if (notif) notif.style.display = (blackHoleNotification && blackHoleActive) ? 'block' : 'none';
 
     if (blackHoleActive && blackHole) {
-        blackHole.pulse += 0.04;
-        // Oyuncu kara delik yedi
-        let eaten = false;
-        try {
-            for (const piece of playerPieces) {
-                if (!piece.alive || eaten) continue;
-                const dx = piece.x - blackHole.x;
-                const dy = piece.y - blackHole.y;
-                if (dx*dx + dy*dy < (piece.radius + blackHole.radius) * (piece.radius + blackHole.radius)) {
-                    piece.radius += 8;
-                    totalScore += 500;
-                    createParticles(blackHole.x, blackHole.y, '#a855f7', 40);
-                    playKillSound();
-                    eaten = true;
-                    break;
-                }
+        blackHole.pulse = (blackHole.pulse || 0) + 0.04;
+        let hit = false;
+        for (let i = 0; i < playerPieces.length; i++) {
+            const p = playerPieces[i];
+            if (!p || !p.alive) continue;
+            const dx = p.x - blackHole.x;
+            const dy = p.y - blackHole.y;
+            if (dx*dx + dy*dy < (p.radius + blackHole.radius) * (p.radius + blackHole.radius)) {
+                p.radius += 10;
+                totalScore += 500;
+                for (let j = 0; j < 30; j++) particles.push(new Particle(blackHole.x, blackHole.y, '#a855f7', 3+Math.random()*4));
+                try { playKillSound(); } catch(e){}
+                hit = true;
+                break;
             }
-        } catch(e) {}
-        if (eaten) {
+        }
+        if (hit) {
             blackHoleActive = false;
             blackHole = null;
             blackHoleTimer = Date.now();
@@ -1242,54 +1235,36 @@ function draw() {
     for (const s of spikes) s.draw(ctx, camera);
 
     // Kara delik
-    if (blackHoleActive && blackHole) {
+    try { if (blackHoleActive && blackHole) {
         const sx = blackHole.x - camera.x, sy = blackHole.y - camera.y;
-        // Yön gösterici (ekran dışındaysa)
         if (sx < -200 || sx > W+200 || sy < -200 || sy > H+200) {
             const angle = Math.atan2(blackHole.y - camera.y - H/2, blackHole.x - camera.x - W/2);
             const px = W/2 + Math.cos(angle) * (Math.min(W, H) * 0.35);
             const py = H/2 + Math.sin(angle) * (Math.min(W, H) * 0.35);
-            ctx.save();
-            ctx.translate(px, py);
-            ctx.rotate(angle);
-            ctx.fillStyle = '#a855f7';
-            ctx.font = '24px sans-serif';
+            ctx.save(); ctx.translate(px, py); ctx.rotate(angle);
+            ctx.fillStyle = '#a855f7'; ctx.font = '24px sans-serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 15;
-            ctx.fillText('🕳️', 0, 0);
-            ctx.shadowBlur = 0;
-            ctx.restore();
+            ctx.fillText('🕳️', 0, 0); ctx.shadowBlur = 0; ctx.restore();
         }
         if (sx > -200 && sx < W+200 && sy > -200 && sy < H+200) {
-            const pulse = Math.sin(blackHole.pulse) * 15;
+            const pulse = Math.sin(blackHole.pulse||0) * 15;
             const r = blackHole.radius + pulse;
-            // Dış halka
             const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*3);
-            g.addColorStop(0, 'rgba(80,0,120,0.15)');
-            g.addColorStop(0.5, 'rgba(40,0,80,0.08)');
-            g.addColorStop(1, 'transparent');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(sx, sy, r*2.5, 0, Math.PI*2); ctx.fill();
-            // Merkez
+            g.addColorStop(0, 'rgba(80,0,120,0.15)'); g.addColorStop(0.5, 'rgba(40,0,80,0.08)'); g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, r*3, 0, Math.PI*2); ctx.fill();
             const g2 = ctx.createRadialGradient(sx-r*0.3, sy-r*0.3, 0, sx, sy, r);
-            g2.addColorStop(0, '#a855f7');
-            g2.addColorStop(0.4, '#7c3aed');
-            g2.addColorStop(0.8, '#4c1d95');
-            g2.addColorStop(1, '#1a0a2e');
-            ctx.fillStyle = g2;
-            ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 30;
-            ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
-            // Işık halkası
-            ctx.strokeStyle = `rgba(168,85,247,${0.3+Math.sin(blackHole.pulse)*0.15})`;
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(sx, sy, r*1.2, 0, Math.PI*2); ctx.stroke();
+            g2.addColorStop(0, '#a855f7'); g2.addColorStop(0.4, '#7c3aed'); g2.addColorStop(0.8, '#4c1d95'); g2.addColorStop(1, '#1a0a2e');
+            ctx.fillStyle = g2; ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.strokeStyle = `rgba(168,85,247,${0.3+Math.sin(blackHole.pulse||0)*0.15})`;
+            ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(sx, sy, r*1.2, 0, Math.PI*2); ctx.stroke();
             ctx.fillStyle = '#fff';
             ctx.font = `bold ${Math.max(10, r*0.25)}px sans-serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('🕳️', sx, sy);
         }
-    }
+    } } catch(e) {}
 
     // Parçacıklar
     for (const p of particles) p.draw(ctx, camera);
