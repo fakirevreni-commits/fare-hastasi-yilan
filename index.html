@@ -570,9 +570,8 @@ const MemeAudio = {
     },
 
     activate() {
-        if (this._ready) return;
-        this.init();
-        if (this.musicEnabled && !this.currentSong) this.playNextSong();
+        if (!this.ctx) { this.init(); }
+        if (this.ctx && this.ctx.state === 'suspended') { this.ctx.resume(); }
     },
 
     setVolume(v) {
@@ -1066,7 +1065,6 @@ function setDir(d) {
 }
 
 function startGame() {
-    MemeAudio.activate();
     if (over) { init(); }
     if (running && !paused) return;
     running = true; paused = false;
@@ -1385,6 +1383,9 @@ function onFirstInteraction() {
     if (audioActivated) return;
     audioActivated = true;
     MemeAudio.activate();
+    if (MemeAudio.musicEnabled && !MemeAudio.currentSong) {
+        MemeAudio.playNextSong();
+    }
     document.removeEventListener('mousedown', onFirstInteraction);
     document.removeEventListener('keydown', onFirstInteraction);
     document.removeEventListener('touchstart', onFirstInteraction);
