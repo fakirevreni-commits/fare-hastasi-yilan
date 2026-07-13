@@ -1216,11 +1216,11 @@ function updateGame() {
 }
     }
 
-    // En büyük parçayı kamera takip etsin, büyüdükçe kamera açılsın
+    // En büyük parçayı kamera takip etsin
     const mainPiece = playerPieces.reduce((a,b) => (!a.alive || (b.alive && b.radius > a.radius)) ? b : a, playerPieces[0]);
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
-    // agar.io zoom formülü
+    // agar.io zoom formülü (birebir aynı)
     let totalSize = 0;
     for (const p of playerPieces) if (p.alive) totalSize += p.radius;
     if (totalSize < 70) totalSize = 70;
