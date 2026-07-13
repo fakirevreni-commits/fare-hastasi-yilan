@@ -1908,10 +1908,8 @@ function draw() {
 }
 
 function gameLoop() {
-    if (!showCharSelect) {
-        updateGame();
-        draw();
-    }
+    updateGame();
+    draw();
     requestAnimationFrame(gameLoop);
 }
 
@@ -2174,8 +2172,8 @@ document.querySelectorAll('.sk-btn').forEach(el => {
     });
 });
 
-document.getElementById('btnSkin').addEventListener('click', () => {
-    document.getElementById('skinPanel').classList.toggle('open');
+document.getElementById('btnSkin').addEventListener('click', function() {
+    renderCharSelectScreen();
 });
 
 document.getElementById('btnRestart').addEventListener('click', () => {
@@ -2183,8 +2181,7 @@ document.getElementById('btnRestart').addEventListener('click', () => {
 });
 document.getElementById('btnPlayAgain').addEventListener('click', function() {
     document.getElementById('gameOverBanner').style.display = 'none';
-    showCharSelect = true;
-    renderCharSelectScreen();
+    initGame();
 });
 
 // Fotoğraf yükleme
@@ -2220,15 +2217,13 @@ document.getElementById('btnPlayOffline').addEventListener('click', function() {
     document.getElementById('onlineModal').classList.remove('active');
     document.getElementById('statusBadge').textContent = '💻 Tek Oyunculu';
     document.getElementById('statusBadge').classList.remove('online');
-    showCharSelect = true;
-    renderCharSelectScreen();
+    initGame();
 });
  
 // Canvas click (empty - audio removed)
 canvas.addEventListener('click', () => {});
 
-// ========== KARAKTER SEÇİM EKRANI ==========
-let showCharSelect = true;
+// ========== KARAKTER SEÇİM EKRANI (opsiyonel - sadece butonla) ==========
 
 function renderCharSelectScreen() {
     const existing = document.getElementById('charSelectScreen');
@@ -2278,7 +2273,6 @@ function renderCharSelectScreen() {
     document.getElementById('btnConfirmChar').addEventListener('click', function() {
         var el = document.getElementById('charSelectScreen');
         if (el) el.remove();
-        showCharSelect = false;
         initGame();
     });
 }
@@ -2923,7 +2917,7 @@ function playFireballSound() {
 // ========== GÜNCELLENMİŞ OYUN BAŞLANGICI ==========
 // Enter tuşu ile online modal'dan hızlı başlatma
 document.getElementById('userNameInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); showCharSelect = true; renderCharSelectScreen(); }
+    if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); initGame(); }
 });
 document.getElementById('roomCodeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') joinRoom();
@@ -2936,9 +2930,9 @@ document.getElementById('userNameInput').value = userName;
 // Kayıtlı ilerlemeyi yükle
 loadProgress();
 
-// Karakter seçimi ekranını göster (oyunu başlatma)
+// Oyunu direkt başlat
 document.getElementById('onlineModal').classList.remove('active');
-renderCharSelectScreen();
+initGame();
 gameLoop();
 </script>
 </body>
