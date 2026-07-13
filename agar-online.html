@@ -1220,7 +1220,8 @@ function updateGame() {
     const mainPiece = playerPieces.reduce((a,b) => (!a.alive || (b.alive && b.radius > a.radius)) ? b : a, playerPieces[0]);
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
-    cameraZoom = Math.max(0.25, Math.min(1.2, 65 / (mainPiece.radius + 35)));
+    const targetZoom = Math.max(0.45, Math.min(1, 80 / (mainPiece.radius + 30)));
+    cameraZoom += (targetZoom - cameraZoom) * 0.05;
 
     // Yiyecek yeme (tüm parçalar) - büyütür ve skor artar
     for (const piece of playerPieces) {
@@ -1359,9 +1360,45 @@ function updateGame() {
     }
     for (const bot of bots) {
         if (!bot.alive) continue;
-        for (const spike of spikes) {
+        for (let si = spikes.length - 1; si >= 0; si--) {
+            const spike = spikes[si];
             if (bot.distTo(spike) < bot.radius + spike.radius) {
-                // Dikenler botlara bir şey yapmaz
+                if (bot.radius >= spike.radius) {
+                    createParticles(spike.x, spike.y, '#ff6b35', 15);
+                    spikes.splice(si, 1);
+                    const pieceCount = Math.min(4, Math.max(2, Math.floor(bot.radius / 20)));
+                    const mass = bot.mass;
+                    const pieceMass = mass / pieceCount;
+                    if (pieceMass >= MIN_SPLIT_RADIUS * MIN_SPLIT_RADIUS * Math.PI) {
+                        const newPieces = [];
+                        for (let j = 0; j < pieceCount; j++) {
+                            const ang = (Math.PI*2*j)/pieceCount + Math.random()*0.4;
+                            const dist = bot.radius + 8;
+                            const r = Math.max(MIN_SPLIT_RADIUS, Math.sqrt(pieceMass / Math.PI));
+                            const p = new Cell(bot.x, bot.y, r, false);
+                            p.splitTargetX = bot.x + Math.cos(ang) * dist;
+                            p.splitTargetY = bot.y + Math.sin(ang) * dist;
+                            p.splitProgress = 0;
+                            p.name = bot.name;
+                            p.skin = bot.skin;
+                            p.color = bot.color;
+                            p.isBot = true;
+                            p.splitGroup = Date.now();
+                            newPieces.push(p);
+                        }
+                        bot.alive = false;
+                        const botIdx = bots.indexOf(bot);
+                        if (botIdx > -1) bots.splice(botIdx, 1);
+                        newPieces.forEach(p => {
+                            bots.push(p);
+                            setTimeout(() => {
+                                if (!p.alive) return;
+                                const idx = bots.indexOf(p);
+                                if (idx > -1) bots.splice(idx, 1);
+                            }, 8000);
+                        });
+                    }
+                }
                 break;
             }
         }
@@ -1550,6 +1587,18 @@ function updateGame() {
     updateGoldDisplay();
 
     updateUI();
+
+    // Bot respawn - her zaman minimum bot sayısı olsun
+    if (isHost || !peer) {
+        const aliveBotCount = bots.filter(b => b.alive).length;
+        if (aliveBotCount < BOT_COUNT && totalFrames % 120 === 0) {
+            const nb = new Cell(Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE, 15+Math.random()*18);
+            nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)];
+            nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)];
+            nb.targetX = Math.random()*WORLD_SIZE; nb.targetY = Math.random()*WORLD_SIZE;
+            bots.push(nb);
+        }
+    }
 
     // Online state gönder
     if (peer && connections.length > 0) {
