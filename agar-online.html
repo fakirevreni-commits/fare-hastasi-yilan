@@ -268,6 +268,122 @@
             .modal-box { padding: 20px; }
             #gameOverBanner { padding: 25px; min-width: 280px; }
         }
+
+        /* Music Modal */
+        #musicModal .modal-box {
+            max-width: 420px;
+            padding: 20px;
+            text-align: left;
+        }
+        #musicModal .music-header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        #musicModal .music-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        #musicModal .cat-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        #musicModal .cat-tab {
+            padding: 6px 12px;
+            border: 2px solid rgba(78,205,196,0.2);
+            border-radius: 15px;
+            background: rgba(0,0,0,0.3);
+            color: #a0aec0;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        #musicModal .cat-tab:hover { border-color: #4ecdc4; color: #e2e8f0; }
+        #musicModal .cat-tab.active { background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; border-color: transparent; }
+        #musicModal .song-list {
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+        #musicModal .song-list::-webkit-scrollbar { width: 4px; }
+        #musicModal .song-list::-webkit-scrollbar-thumb { background: #4ecdc4; border-radius: 4px; }
+        #musicModal .song-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+        #musicModal .song-item:hover { background: rgba(78,205,196,0.1); }
+        #musicModal .song-item.playing { background: rgba(78,205,196,0.15); border-color: rgba(78,205,196,0.3); }
+        #musicModal .song-item .song-num {
+            font-size: 0.7rem;
+            color: #718096;
+            min-width: 18px;
+        }
+        #musicModal .song-item .song-info {
+            flex: 1;
+        }
+        #musicModal .song-item .song-title {
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+        #musicModal .song-item .song-artist {
+            font-size: 0.65rem;
+            color: #a0aec0;
+        }
+        #musicModal .song-item .song-status {
+            font-size: 0.9rem;
+        }
+        #musicModal .music-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+        #musicModal .music-controls button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(78,205,196,0.3);
+            background: rgba(0,0,0,0.4);
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #musicModal .music-controls button:hover { border-color: #4ecdc4; background: rgba(78,205,196,0.15); }
+        #musicModal .music-controls button.play-btn { width: 48px; height: 48px; font-size: 1.3rem; background: linear-gradient(135deg,#4ecdc4,#45b7d1); color: #0a0a1a; border-color: transparent; }
+        #musicModal .music-controls button.play-btn:hover { box-shadow: 0 0 20px rgba(78,205,196,0.4); }
+        #musicModal .music-now-playing {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #a0aec0;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+        #musicModal .music-now-playing .np-title {
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+        #youtubePlayer {
+            position: fixed;
+            bottom: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -296,6 +412,7 @@
     <div id="bottomBar">
         <button id="btnOnline">🌐 Online</button>
         <button id="btnSkin">🎨 Karakter</button>
+        <button id="btnMusic">🎵 Müzik</button>
         <button id="btnRestart" class="primary">↻ Yeniden Başlat</button>
     </div>
 
@@ -306,6 +423,35 @@
         <div id="charShop"></div>
     </div>
 </div>
+
+<!-- Music Modal -->
+<div class="modal" id="musicModal">
+    <div class="modal-box">
+        <div class="music-header">
+            <h2>🎵 Müzik</h2>
+        </div>
+        <div class="cat-tabs" id="catTabs">
+            <div class="cat-tab active" data-cat="anime">🎌 Anime</div>
+            <div class="cat-tab" data-cat="viral">🔥 Viral</div>
+            <div class="cat-tab" data-cat="phonk">🎧 Phonk</div>
+            <div class="cat-tab" data-cat="turkce">🇹🇷 Türkçe</div>
+        </div>
+        <div class="song-list" id="songList"></div>
+        <div class="music-controls">
+            <button id="btnPrevShuffle">⏮</button>
+            <button id="btnPlayPause" class="play-btn">▶</button>
+            <button id="btnNextShuffle">⏭</button>
+            <button id="btnStopMusic">⏹</button>
+        </div>
+        <div class="music-now-playing" id="nowPlaying">Şarkı seçin...</div>
+        <div style="text-align:center;margin-top:10px">
+            <button class="btn-s" id="btnCloseMusic">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<!-- YouTube Player -->
+<div id="youtubePlayer"></div>
 
 <div id="gameOverBanner">
     <h2>💀 YOK EDİLDİN</h2>
@@ -2070,8 +2216,235 @@ document.getElementById('btnPlayOffline').addEventListener('click', () => {
     initGame();
 });
  
-// Canvas click
-canvas.addEventListener('click', () => { initAudio(); });
+// Canvas click (empty - audio removed)
+canvas.addEventListener('click', () => {});
+
+// ========== YOUTUBE MÜZİK SİSTEMİ ==========
+const MUSIC_CATEGORIES = {
+    anime: [
+        { id: 'oe4XJ851oOk', title: 'ReawakeR', artist: 'LiSA - Solo Leveling' },
+        { id: 'mAo9SVHRebA', title: 'Black Box', artist: 'LiSA - NieR:Automata' },
+        { id: 'fR7e0N1UkRI', title: 'Shouted Serenade', artist: 'LiSA - Magic High School' },
+        { id: 'AQjgrYWc_zU', title: 'QUEEN', artist: 'LiSA - Shangri-La Frontier' },
+        { id: 'evtoG-4dLM4', title: 'Watch me!', artist: 'YOASOBI - Witch Watch' },
+        { id: 'PgBvV9ofjmA', title: 'Idol', artist: 'YOASOBI - Oshi no Ko' },
+        { id: 'j4dpZx-CbKQ', title: 'Kaibutsu', artist: 'YOASOBI - Beastars' },
+        { id: 'F_2X9TrXfU8', title: 'ReawakeR (Collab)', artist: 'LiSA x Felix' },
+        { id: 'qHkKsKJRM8Y', title: 'Guren no Yumiya', artist: 'Linked Horizon - Attack on Titan' },
+        { id: 'UQaGJ7v0g0c', title: 'Unravel', artist: 'TK - Tokyo Ghoul' }
+    ],
+    viral: [
+        { id: 'q9leDzlNEaY', title: "Killin' It Girl", artist: 'j-hope feat. GloRilla' },
+        { id: 'BgMU9Vuj17Y', title: 'LATINA FOREVA', artist: 'KAROL G' },
+        { id: 'slM5s55Jz0k', title: 'Thodi Si Daaru', artist: 'AP Dhillon' },
+        { id: 'GkTWxDB21cA', title: 'La Perla', artist: 'ROSALÍA ft. Yahritza' },
+        { id: 'M5iHI0nsVZc', title: 'BEEP BEEP', artist: 'Travis Scott & SahBabii' },
+        { id: 'aXRR9YPK7Y4', title: 'Idol (Full)', artist: 'YOASOBI' },
+        { id: 'ZRtdQ81jPUQ', title: 'Idol (MV)', artist: 'YOASOBI' },
+        { id: 'fR7e0N1UkRI', title: 'Shouted Serenade', artist: 'LiSA' },
+        { id: 'oe4XJ851oOk', title: 'ReawakeR', artist: 'LiSA' },
+        { id: 'evtoG-4dLM4', title: 'Watch me!', artist: 'YOASOBI' }
+    ],
+    phonk: [
+        { id: '074mIb4-XTY', title: 'Ultimate Drift Phonk', artist: 'Car Edits & Gym 2025' },
+        { id: 'w5-hZVywEfc', title: 'BEST DRIFT PHONK 2025', artist: 'Phonk Demon' },
+        { id: '_xUxFLEP6gc', title: 'Phonk Music Mix', artist: '1 Hour Aggressive Phonk' },
+        { id: 'oGyza540V0g', title: 'Midnight Torque EP', artist: 'Hard Drift Phonk Funk' },
+        { id: 'pgBvV9ofjmA', title: 'GIGACHAD Theme', artist: 'Phonk House Version' },
+        { id: '7e88qYJx3Qw', title: 'METAMORPH', artist: 'Interworld' },
+        { id: 'bJcMxBfiVnA', title: 'CLOSE EYES', artist: 'DVRST' },
+        { id: 'kTJczUoc26U', title: 'MURDER IN MY MIND', artist: 'Kordhell' },
+        { id: 'XwH0i5W5s6Q', title: 'AFTER DARK', artist: 'Mr. Kitty (Phonk Remix)' },
+        { id: '9x0Jn5kT3sQ', title: 'OVERRIDE', artist: 'KSLV Noh' }
+    ],
+    turkce: [
+        { id: 'JWLWczFtCag', title: 'GİT', artist: 'BLOK3' },
+        { id: 'cZpU4OUNzB4', title: 'Fırtınam', artist: 'Hadise' },
+        { id: '9PNl9-pqN4s', title: 'En Gerçeği', artist: 'Emre Altuğ x Mirkelam' },
+        { id: 'FGtENUR8_qY', title: 'Hiç Vermicem', artist: 'Yıldız Tilbe' },
+        { id: 'iMS_1vWcrg0', title: 'Aklım Hep Onda', artist: 'Samet Kardeşler x Sıla Şahin' },
+        { id: '35wXJ4Cf0R4', title: 'Patlamıştır', artist: 'İsmail YK' },
+        { id: 'h3Q0w9aVj2s', title: 'Domuz', artist: 'Norm Ender' },
+        { id: 'QHnSv9gQn5A', title: 'Yalan', artist: 'Mabel Matiz' },
+        { id: 'JQG1oXn3pRs', title: 'Gülşen - Bangır Bangır', artist: 'Gülşen' },
+        { id: 'kS5MtfSmF1Y', title: 'Simge - Yankı', artist: 'Simge' }
+    ]
+};
+
+let musicPlayer = null;
+let musicYTPlayer = null;
+let currentCat = 'anime';
+let currentSongIdx = -1;
+let musicPlaying = false;
+let ytApiReady = false;
+let musicAutoPlay = false;
+
+function loadYouTubeAPI() {
+    if (window.YT && window.YT.Player) {
+        ytApiReady = true;
+        initMusicYTPlayer();
+        return;
+    }
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementById('youtubePlayer');
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    window.onYouTubeIframeAPIReady = function() {
+        ytApiReady = true;
+        initMusicYTPlayer();
+    };
+}
+
+function initMusicYTPlayer() {
+    if (musicYTPlayer) return;
+    const container = document.getElementById('youtubePlayer');
+    container.innerHTML = '<div id="ytEmbed"></div>';
+    musicYTPlayer = new YT.Player('ytEmbed', {
+        height: '1',
+        width: '1',
+        playerVars: {
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            start: 0
+        },
+        events: {
+            onReady: onYTReady,
+            onStateChange: onYTStateChange
+        }
+    });
+}
+
+function onYTReady(e) {
+    // Player hazır
+}
+
+function onYTStateChange(e) {
+    if (e.data === YT.PlayerState.ENDED) {
+        playNextSong();
+    }
+    if (e.data === YT.PlayerState.PLAYING) {
+        musicPlaying = true;
+        updatePlayPauseBtn();
+    }
+    if (e.data === YT.PlayerState.PAUSED) {
+        musicPlaying = false;
+        updatePlayPauseBtn();
+    }
+}
+
+function renderSongList() {
+    const list = document.getElementById('songList');
+    const songs = MUSIC_CATEGORIES[currentCat] || [];
+    list.innerHTML = songs.map((s, i) => `
+        <div class="song-item ${i === currentSongIdx && currentCat === activeMusicCat ? 'playing' : ''}" data-idx="${i}">
+            <span class="song-num">${i + 1}</span>
+            <div class="song-info">
+                <div class="song-title">${s.title}</div>
+                <div class="song-artist">${s.artist}</div>
+            </div>
+            <span class="song-status">${i === currentSongIdx && currentCat === activeMusicCat ? '▶' : ''}</span>
+        </div>
+    `).join('');
+    list.querySelectorAll('.song-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.idx);
+            playSong(currentCat, idx);
+        });
+    });
+}
+
+let activeMusicCat = 'anime';
+
+function playSong(cat, idx) {
+    if (!ytApiReady || !musicYTPlayer) {
+        loadYouTubeAPI();
+        musicAutoPlay = true;
+        pendingPlay = { cat, idx };
+        return;
+    }
+    const songs = MUSIC_CATEGORIES[cat];
+    if (!songs || idx < 0 || idx >= songs.length) return;
+    activeMusicCat = cat;
+    currentSongIdx = idx;
+    musicYTPlayer.loadVideoById(songs[idx].id);
+    musicPlaying = true;
+    updatePlayPauseBtn();
+    renderSongList();
+    document.getElementById('nowPlaying').innerHTML = `<span class="np-title">${songs[idx].title}</span> - ${songs[idx].artist}`;
+}
+
+let pendingPlay = null;
+
+function playNextSong() {
+    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+    if (songs.length === 0) return;
+    const next = (currentSongIdx + 1) % songs.length;
+    playSong(activeMusicCat, next);
+}
+
+function playPrevSong() {
+    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+    if (songs.length === 0) return;
+    const prev = (currentSongIdx - 1 + songs.length) % songs.length;
+    playSong(activeMusicCat, prev);
+}
+
+function togglePlayPause() {
+    if (!musicYTPlayer) return;
+    if (musicPlaying) {
+        musicYTPlayer.pauseVideo();
+    } else {
+        if (currentSongIdx < 0) {
+            playSong(currentCat, 0);
+        } else {
+            musicYTPlayer.playVideo();
+        }
+    }
+}
+
+function stopMusic() {
+    if (musicYTPlayer) musicYTPlayer.stopVideo();
+    musicPlaying = false;
+    currentSongIdx = -1;
+    updatePlayPauseBtn();
+    renderSongList();
+    document.getElementById('nowPlaying').textContent = 'Şarkı seçin...';
+}
+
+function updatePlayPauseBtn() {
+    const btn = document.getElementById('btnPlayPause');
+    if (btn) btn.textContent = musicPlaying ? '⏸' : '▶';
+}
+
+document.getElementById('catTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.cat-tab');
+    if (!tab) return;
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentCat = tab.dataset.cat;
+    renderSongList();
+});
+
+document.getElementById('btnPlayPause').addEventListener('click', togglePlayPause);
+document.getElementById('btnNextShuffle').addEventListener('click', playNextSong);
+document.getElementById('btnPrevShuffle').addEventListener('click', playPrevSong);
+document.getElementById('btnStopMusic').addEventListener('click', stopMusic);
+
+document.getElementById('btnMusic').addEventListener('click', () => {
+    document.getElementById('musicModal').classList.add('active');
+    renderSongList();
+});
+document.getElementById('btnCloseMusic').addEventListener('click', () => {
+    document.getElementById('musicModal').classList.remove('active');
+});
+
+loadYouTubeAPI();
 
 // ========== BAŞLAT ==========
 // Enter tuşu ile online modal'dan hızlı başlatma
