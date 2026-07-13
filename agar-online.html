@@ -1799,23 +1799,26 @@ function broadcastState() {
 // ========== ÇİZİM ==========
 function draw() {
     ctx.clearRect(0, 0, W, H);
-    
+
+    // Arka plan her zaman tüm ekranı kaplasın (zoom'dan bağımsız)
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+
     // Boyuta göre zoom
     ctx.save();
     ctx.translate(W/2, H/2);
     ctx.scale(cameraZoom, cameraZoom);
     ctx.translate(-W/2, -H/2);
 
-    ctx.fillStyle = '#0a0a1a';
-    ctx.fillRect(0, 0, W, H);
-
-    // Grid
+    // Grid (zoom'a göre geniş ekranı kapla)
     ctx.strokeStyle = 'rgba(78,205,196,0.025)';
     ctx.lineWidth = 1;
     const gs = 60;
+    const viewW = W / cameraZoom;
+    const viewH = H / cameraZoom;
     const sx = Math.floor(camera.x/gs)*gs, sy = Math.floor(camera.y/gs)*gs;
-    for (let x = sx; x < sx+W+gs; x+=gs) { ctx.beginPath(); ctx.moveTo(x-camera.x,0); ctx.lineTo(x-camera.x,H); ctx.stroke(); }
-    for (let y = sy; y < sy+H+gs; y+=gs) { ctx.beginPath(); ctx.moveTo(0,y-camera.y); ctx.lineTo(W,y-camera.y); ctx.stroke(); }
+    for (let x = sx; x < sx+viewW+gs; x+=gs) { ctx.beginPath(); ctx.moveTo(x-camera.x,0); ctx.lineTo(x-camera.x,viewH); ctx.stroke(); }
+    for (let y = sy; y < sy+viewH+gs; y+=gs) { ctx.beginPath(); ctx.moveTo(0,y-camera.y); ctx.lineTo(viewW,y-camera.y); ctx.stroke(); }
 
     // Dünya sınırı
     ctx.strokeStyle = 'rgba(255,50,50,0.2)';
