@@ -1053,9 +1053,9 @@ function splitPlayer() {
         const halfMass = mass / 2;
         const r1 = Math.sqrt(halfMass / Math.PI);
         const r2 = r1;
-        const dx = mouseX - W/2;
-        const dy = mouseY - H/2;
-        const a = Math.atan2(dy, dx);
+        const worldMouseX = mouseX + camera.x;
+        const worldMouseY = mouseY + camera.y;
+        const a = Math.atan2(worldMouseY - piece.y, worldMouseX - piece.x);
         const dist = piece.radius + r1 + 5;
         piece.radius = r1;
         const p2 = new Cell(piece.x, piece.y, r2, true);
@@ -1071,18 +1071,19 @@ function splitPlayer() {
         mergeTimers.push({ id: p2.splitGroup, time: Date.now() + SPLIT_MERGE_TIME });
         for (let i = 0; i < 12; i++) {
             const pa = a + (Math.random() - 0.5) * 1.2;
-            const ps = 2 + Math.random() * 4;
+            const ps = 3 + Math.random() * 5;
             const pp = new Particle(piece.x, piece.y, piece.color, 3 + Math.random() * 5);
             pp.vx = Math.cos(pa) * ps;
             pp.vy = Math.sin(pa) * ps;
-            pp.decay = 0.025 + Math.random() * 0.015;
+            pp.decay = 0.02 + Math.random() * 0.015;
             particles.push(pp);
         }
-        for (let i = 0; i < 6; i++) {
-            const pp = new Particle(piece.x, piece.y, '#fff', 1.5 + Math.random() * 2);
-            pp.vx = Math.cos(a + (Math.random() - 0.5) * 2) * (1 + Math.random() * 2);
-            pp.vy = Math.sin(a + (Math.random() - 0.5) * 2) * (1 + Math.random() * 2);
-            pp.decay = 0.03 + Math.random() * 0.02;
+        for (let i = 0; i < 8; i++) {
+            const pp = new Particle(piece.x, piece.y, '#fff', 2 + Math.random() * 3);
+            const spread = (Math.random() - 0.5) * 2;
+            pp.vx = Math.cos(a + spread) * (2 + Math.random() * 3);
+            pp.vy = Math.sin(a + spread) * (2 + Math.random() * 3);
+            pp.decay = 0.025 + Math.random() * 0.02;
             particles.push(pp);
         }
     }
