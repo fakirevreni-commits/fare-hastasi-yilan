@@ -2181,7 +2181,8 @@ document.getElementById('btnRestart').addEventListener('click', () => {
 });
 document.getElementById('btnPlayAgain').addEventListener('click', () => {
     document.getElementById('gameOverBanner').style.display = 'none';
-    if (isHost || !peer) { initGame(); }
+    showCharSelect = true;
+    renderCharSelectScreen();
 });
 
 // Fotoğraf yükleme
@@ -2223,6 +2224,71 @@ document.getElementById('btnPlayOffline').addEventListener('click', () => {
 // Canvas click (empty - audio removed)
 canvas.addEventListener('click', () => {});
 
+// ========== KARAKTER SEÇİM EKRANI ==========
+let showCharSelect = true;
+function renderCharSelectScreen() {
+    if (!showCharSelect) return;
+    const banner = document.getElementById('gameOverBanner');
+    banner.style.display = 'none';
+    const existing = document.getElementById('charSelectScreen');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = 'charSelectScreen';
+    div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;background:rgba(10,10,26,0.97);display:flex;justify-content:center;align-items:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
+    let charsHtml = '';
+    for (const [id, ch] of Object.entries(CHARACTERS)) {
+        const owned = ownedCharacters.includes(id);
+        const isActive = selectedCharacter === id;
+        const borderColor = isActive ? ch.color : owned ? 'rgba(78,205,196,0.2)' : 'rgba(255,255,255,0.08)';
+        const opacity = owned ? '1' : '0.5';
+        charsHtml += `<div class="charSelectCard" data-char="${id}" style="cursor:pointer;border:3px solid ${borderColor};border-radius:14px;padding:14px 10px;text-align:center;background:rgba(0,0,0,0.4);min-width:100px;opacity:${opacity};transition:all 0.2s;">
+            <div style="font-size:2rem;margin-bottom:4px">${ch.name.split(' ')[0]}</div>
+            <div style="font-size:0.8rem;color:#e2e8f0;font-weight:700">${ch.name.split(' ').slice(1).join(' ')}</div>
+            <div style="font-size:0.6rem;color:#a0aec0;margin-top:3px">${ch.desc}</div>
+            ${!owned ? '<div style="font-size:0.65rem;color:#f6d365;margin-top:5px">💰 ' + ch.cost + '</div>' : ''}
+            ${isActive ? '<div style="font-size:0.6rem;color:#4ecdc4;margin-top:4px;font-weight:700">✓ SEÇİLİ</div>' : ''}
+        </div>`;
+    }
+    div.innerHTML = `<div style="text-align:center;max-width:600px;width:90%">
+        <h2 style="color:#4ecdc4;font-size:1.8rem;margin-bottom:6px">🎮 KARAKTER SEÇ</h2>
+        <p style="color:#a0aec0;font-size:0.8rem;margin-bottom:16px">Oynamak istediğini karakteri seç ve başla</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">${charsHtml}</div>
+        <div style="display:flex;gap:10px;justify-content:center">
+            <button onclick="confirmCharSelect()" style="padding:12px 40px;border:none;border-radius:25px;font-size:1rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#4ecdc4,#45b7d1);color:#0a0a1a;transition:all 0.2s">⚔️ BAŞLA</button>
+        </div>
+        <div style="margin-top:10px;font-size:0.7rem;color:#718096">Altın: 💰 ${gold}</div>
+    </div>`;
+    document.body.appendChild(div);
+    div.querySelectorAll('.charSelectCard').forEach(card => {
+        card.addEventListener('click', () => {
+            const chId = card.dataset.char;
+            const owned = ownedCharacters.includes(chId);
+            if (!owned) {
+                const cost = CHARACTERS[chId].cost;
+                if (gold >= cost) {
+                    gold -= cost;
+                    ownedCharacters.push(chId);
+                    selectedCharacter = chId;
+                    saveProgress();
+                    renderCharSelectScreen();
+                } else {
+                    showNotification('❌ Yetersiz altın! ' + cost + ' altın gerekli');
+                }
+            } else {
+                selectedCharacter = chId;
+                saveProgress();
+                renderCharSelectScreen();
+            }
+        });
+    });
+}
+function confirmCharSelect() {
+    const el = document.getElementById('charSelectScreen');
+    if (el) el.remove();
+    showCharSelect = false;
+    initGame();
+}
+
 // ========== YOUTUBE MÜZİK SİSTEMİ ==========
 const MUSIC_CATEGORIES = {
     anime: [
@@ -2234,7 +2300,7 @@ const MUSIC_CATEGORIES = {
         { id: 'PgBvV9ofjmA', title: 'Idol', artist: 'YOASOBI - Oshi no Ko' },
         { id: 'j4dpZx-CbKQ', title: 'Kaibutsu', artist: 'YOASOBI - Beastars' },
         { id: 'F_2X9TrXfU8', title: 'ReawakeR (Collab)', artist: 'LiSA x Felix' },
-        { id: 'qHkKsKJRM8Y', title: 'Guren no Yumiya', artist: 'Linked Horizon - Attack on Titan' },
+        { id: 'qHkKsKJRM8Y', title: 'Guren no Yumiya', artist: 'Linked Horizon - AoT' },
         { id: 'UQaGJ7v0g0c', title: 'Unravel', artist: 'TK - Tokyo Ghoul' }
     ],
     viral: [
@@ -2242,23 +2308,23 @@ const MUSIC_CATEGORIES = {
         { id: 'BgMU9Vuj17Y', title: 'LATINA FOREVA', artist: 'KAROL G' },
         { id: 'slM5s55Jz0k', title: 'Thodi Si Daaru', artist: 'AP Dhillon' },
         { id: 'GkTWxDB21cA', title: 'La Perla', artist: 'ROSALÍA ft. Yahritza' },
-        { id: 'M5iHI0nsVZc', title: 'BEEP BEEP', artist: 'Travis Scott & SahBabii' },
-        { id: 'aXRR9YPK7Y4', title: 'Idol (Full)', artist: 'YOASOBI' },
-        { id: 'ZRtdQ81jPUQ', title: 'Idol (MV)', artist: 'YOASOBI' },
+        { id: 'M5iHI0nsVZc', title: 'BEEP BEEP', artist: 'Travis Scott' },
+        { id: 'sVx1mJDeUjY', title: 'After Dark', artist: 'Mr. Kitty' },
+        { id: 'PgBvV9ofjmA', title: 'Idol', artist: 'YOASOBI' },
         { id: 'fR7e0N1UkRI', title: 'Shouted Serenade', artist: 'LiSA' },
         { id: 'oe4XJ851oOk', title: 'ReawakeR', artist: 'LiSA' },
         { id: 'evtoG-4dLM4', title: 'Watch me!', artist: 'YOASOBI' }
     ],
     phonk: [
-        { id: '074mIb4-XTY', title: 'Ultimate Drift Phonk', artist: 'Car Edits & Gym 2025' },
-        { id: 'w5-hZVywEfc', title: 'BEST DRIFT PHONK 2025', artist: 'Phonk Demon' },
-        { id: '_xUxFLEP6gc', title: 'Phonk Music Mix', artist: '1 Hour Aggressive Phonk' },
-        { id: 'oGyza540V0g', title: 'Midnight Torque EP', artist: 'Hard Drift Phonk Funk' },
-        { id: 'pgBvV9ofjmA', title: 'GIGACHAD Theme', artist: 'Phonk House Version' },
-        { id: '7e88qYJx3Qw', title: 'METAMORPH', artist: 'Interworld' },
+        { id: 'JjPtDl6EJ3o', title: 'MONTAGEM XONADA', artist: 'DJ Samir x DJ Javi26' },
+        { id: 'n_17ynlH7qs', title: 'MONTAGEM PR FUNK', artist: 'S3BZS (Slowed)' },
+        { id: 'iXOh_siZT6g', title: 'MONTAGEM ELDER', artist: 'DJ Samir x RXDXVIL' },
+        { id: 'sVx1mJDeUjY', title: 'After Dark', artist: 'Mr. Kitty' },
+        { id: '074mIb4-XTY', title: 'Drift Phonk 2025', artist: 'Car Gym Edits' },
+        { id: 'w5-hZVywEfc', title: 'BEST DRIFT PHONK', artist: 'Phonk Demon' },
+        { id: '_xUxFLEP6gc', title: 'Phonk Mix 1H', artist: 'Aggressive Phonk' },
         { id: 'bJcMxBfiVnA', title: 'CLOSE EYES', artist: 'DVRST' },
         { id: 'kTJczUoc26U', title: 'MURDER IN MY MIND', artist: 'Kordhell' },
-        { id: 'XwH0i5W5s6Q', title: 'AFTER DARK', artist: 'Mr. Kitty (Phonk Remix)' },
         { id: '9x0Jn5kT3sQ', title: 'OVERRIDE', artist: 'KSLV Noh' }
     ],
     turkce: [
@@ -2266,22 +2332,25 @@ const MUSIC_CATEGORIES = {
         { id: 'cZpU4OUNzB4', title: 'Fırtınam', artist: 'Hadise' },
         { id: '9PNl9-pqN4s', title: 'En Gerçeği', artist: 'Emre Altuğ x Mirkelam' },
         { id: 'FGtENUR8_qY', title: 'Hiç Vermicem', artist: 'Yıldız Tilbe' },
-        { id: 'iMS_1vWcrg0', title: 'Aklım Hep Onda', artist: 'Samet Kardeşler x Sıla Şahin' },
+        { id: 'iMS_1vWcrg0', title: 'Aklım Hep Onda', artist: 'Samet Kardeşler x Sıla' },
         { id: '35wXJ4Cf0R4', title: 'Patlamıştır', artist: 'İsmail YK' },
         { id: 'h3Q0w9aVj2s', title: 'Domuz', artist: 'Norm Ender' },
         { id: 'QHnSv9gQn5A', title: 'Yalan', artist: 'Mabel Matiz' },
-        { id: 'JQG1oXn3pRs', title: 'Gülşen - Bangır Bangır', artist: 'Gülşen' },
-        { id: 'kS5MtfSmF1Y', title: 'Simge - Yankı', artist: 'Simge' }
+        { id: 'JQG1oXn3pRs', title: 'Bangır Bangır', artist: 'Gülşen' },
+        { id: 'kS5MtfSmF1Y', title: 'Yankı', artist: 'Simge' }
     ]
 };
 
-let musicPlayer = null;
 let musicYTPlayer = null;
 let currentCat = 'anime';
 let currentSongIdx = -1;
 let musicPlaying = false;
 let ytApiReady = false;
-let musicAutoPlay = false;
+let pendingPlay = null;
+let activeMusicCat = 'anime';
+let adPlaying = false;
+let adCheckInterval = null;
+let lastLoadedVideoId = '';
 
 function loadYouTubeAPI() {
     if (window.YT && window.YT.Player) {
@@ -2315,7 +2384,7 @@ function initMusicYTPlayer() {
             modestbranding: 1,
             rel: 0,
             showinfo: 0,
-            start: 0
+            playsinline: 1
         },
         events: {
             onReady: onYTReady,
@@ -2324,71 +2393,179 @@ function initMusicYTPlayer() {
     });
 }
 
-let adPlaying = false;
-let adCheckInterval = null;
-
-function onYTReady(e) {
-    // Player hazır
-}
+function onYTReady() {}
 
 function onYTStateChange(e) {
     const state = e.data;
-    const np = document.getElementById('nowPlaying');
-    
     if (state === YT.PlayerState.ENDED) {
+        adPlaying = false;
+        showAdBanner(false);
         playNextSong();
     }
     if (state === YT.PlayerState.PLAYING) {
         musicPlaying = true;
         updatePlayPauseBtn();
-        // Reklam kontrolü: süre 0 veya çok kısaysa reklam olabilir
         startAdCheck();
     }
     if (state === YT.PlayerState.PAUSED) {
         musicPlaying = false;
         updatePlayPauseBtn();
     }
-    if (state === YT.PlayerState.BUFFERING) {
-        // Buffering sırasında da kontrol et
-    }
 }
 
 function startAdCheck() {
     if (adCheckInterval) clearInterval(adCheckInterval);
+    let checkCount = 0;
     adCheckInterval = setInterval(() => {
-        if (!musicYTPlayer || !musicPlaying) { clearInterval(adCheckInterval); return; }
+        if (!musicYTPlayer) { clearInterval(adCheckInterval); return; }
         try {
+            const state = musicYTPlayer.getPlayerState();
+            if (state !== YT.PlayerState.PLAYING) {
+                if (adPlaying) { adPlaying = false; showAdBanner(false); musicYTPlayer.unMute(); }
+                clearInterval(adCheckInterval);
+                return;
+            }
             const duration = musicYTPlayer.getDuration();
             const url = musicYTPlayer.getVideoUrl() || '';
-            // YouTube reklam videosu URL'de farklılık gösterir
-            // Ayrıca reklam oynatılırken getDuration() 0 döner
-            const isAd = (duration === 0 || duration < 3) && musicYTPlayer.getPlayerState() === YT.PlayerState.PLAYING;
+            const currentId = url.match(/[?&]v=([^&]+)/)?.[1] || '';
+            const isAd = (duration === 0 || duration < 5) && currentId !== lastLoadedVideoId;
             
             if (isAd && !adPlaying) {
                 adPlaying = true;
-                musicYTPlayer.mute();
+                try { musicYTPlayer.mute(); } catch(ex) {}
                 showAdBanner(true);
             } else if (!isAd && adPlaying) {
                 adPlaying = false;
-                musicYTPlayer.unMute();
+                try { musicYTPlayer.unMute(); } catch(ex) {}
                 showAdBanner(false);
+            } else if (!isAd && !adPlaying && checkCount > 4) {
+                try { musicYTPlayer.unMute(); } catch(ex) {}
             }
+            checkCount++;
+            if (checkCount > 20) clearInterval(adCheckInterval);
         } catch(ex) {}
-    }, 500);
+    }, 400);
 }
 
 function showAdBanner(show) {
     const np = document.getElementById('nowPlaying');
-    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
-    const song = songs[currentSongIdx];
+    if (!np) return;
     if (show) {
-        np.innerHTML = `<span style="color:#f6d365">⏳ Reklam bekleniyor... Ses kısılı</span>`;
+        np.innerHTML = '<span style="color:#f6d365">⏳ Reklam bekleniyor... Ses kısılı</span>';
     } else {
+        const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+        const song = songs[currentSongIdx];
         if (song) {
             np.innerHTML = `<span class="np-title">${song.title}</span> - ${song.artist}`;
         }
     }
 }
+
+function renderSongList() {
+    const list = document.getElementById('songList');
+    if (!list) return;
+    const songs = MUSIC_CATEGORIES[currentCat] || [];
+    list.innerHTML = songs.map((s, i) => `
+        <div class="song-item ${i === currentSongIdx && currentCat === activeMusicCat ? 'playing' : ''}" data-idx="${i}">
+            <span class="song-num">${i + 1}</span>
+            <div class="song-info">
+                <div class="song-title">${s.title}</div>
+                <div class="song-artist">${s.artist}</div>
+            </div>
+            <span class="song-status">${i === currentSongIdx && currentCat === activeMusicCat ? '▶' : ''}</span>
+        </div>
+    `).join('');
+    list.querySelectorAll('.song-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.idx);
+            playSong(currentCat, idx);
+        });
+    });
+}
+
+function playSong(cat, idx) {
+    if (!ytApiReady || !musicYTPlayer) {
+        loadYouTubeAPI();
+        pendingPlay = { cat, idx };
+        return;
+    }
+    const songs = MUSIC_CATEGORIES[cat];
+    if (!songs || idx < 0 || idx >= songs.length) return;
+    activeMusicCat = cat;
+    currentSongIdx = idx;
+    lastLoadedVideoId = songs[idx].id;
+    adPlaying = false;
+    showAdBanner(false);
+    musicYTPlayer.loadVideoById({ videoId: songs[idx].id, autoplay: 1 });
+    musicYTPlayer.unMute();
+    musicPlaying = true;
+    updatePlayPauseBtn();
+    renderSongList();
+    document.getElementById('nowPlaying').innerHTML = `<span class="np-title">${songs[idx].title}</span> - ${songs[idx].artist}`;
+}
+
+function playNextSong() {
+    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+    if (songs.length === 0) return;
+    const next = (currentSongIdx + 1) % songs.length;
+    playSong(activeMusicCat, next);
+}
+
+function playPrevSong() {
+    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+    if (songs.length === 0) return;
+    const prev = (currentSongIdx - 1 + songs.length) % songs.length;
+    playSong(activeMusicCat, prev);
+}
+
+function togglePlayPause() {
+    if (!musicYTPlayer) return;
+    if (musicPlaying) {
+        musicYTPlayer.pauseVideo();
+    } else {
+        if (currentSongIdx < 0) { playSong(currentCat, 0); }
+        else { musicYTPlayer.playVideo(); }
+    }
+}
+
+function stopMusic() {
+    if (musicYTPlayer) musicYTPlayer.stopVideo();
+    musicPlaying = false;
+    currentSongIdx = -1;
+    adPlaying = false;
+    updatePlayPauseBtn();
+    renderSongList();
+    document.getElementById('nowPlaying').textContent = 'Şarkı seçin...';
+}
+
+function updatePlayPauseBtn() {
+    const btn = document.getElementById('btnPlayPause');
+    if (btn) btn.textContent = musicPlaying ? '⏸' : '▶';
+}
+
+document.getElementById('catTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.cat-tab');
+    if (!tab) return;
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentCat = tab.dataset.cat;
+    renderSongList();
+});
+
+document.getElementById('btnPlayPause').addEventListener('click', togglePlayPause);
+document.getElementById('btnNextShuffle').addEventListener('click', playNextSong);
+document.getElementById('btnPrevShuffle').addEventListener('click', playPrevSong);
+document.getElementById('btnStopMusic').addEventListener('click', stopMusic);
+
+document.getElementById('btnMusic').addEventListener('click', () => {
+    document.getElementById('musicModal').classList.add('active');
+    renderSongList();
+});
+document.getElementById('btnCloseMusic').addEventListener('click', () => {
+    document.getElementById('musicModal').classList.remove('active');
+});
+
+loadYouTubeAPI();
 
 function renderSongList() {
     const list = document.getElementById('songList');
@@ -2622,72 +2799,97 @@ function playChogathSound() {
     osc2.stop(now + 0.5);
 }
 
-// Garen Demacia sesi - kılıç darbesi + "DEMACIA!"
+// Garen Demacia sesi - otantik LoL sesi: "DEMACİAAA!" + kılıç
 function playGarenSound() {
     const ctx = getSfxCtx();
     const now = ctx.currentTime;
     
-    // Kılıç slaytı
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.2);
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.25);
-    
-    // Metal tınısı
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'square';
-    osc2.frequency.setValueAtTime(2000, now);
-    osc2.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-    gain2.gain.setValueAtTime(0.12, now);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + 0.2);
-    
-    // "DE-MA-CIA" heceleri (3 tonlu)
-    const syllables = [0, 0.1, 0.2];
-    const freqs = [500, 650, 800];
-    syllables.forEach((delay, i) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(freqs[i], now + delay);
-        o.frequency.exponentialRampToValueAtTime(freqs[i] * 0.8, now + delay + 0.08);
-        g.gain.setValueAtTime(0, now);
-        g.gain.setValueAtTime(0.2, now + delay);
-        g.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
-        o.connect(g);
-        g.connect(ctx.destination);
-        o.start(now + delay);
-        o.stop(now + delay + 0.1);
-    });
-    
-    // Patlama efekti
-    const bufSize = ctx.sampleRate * 0.3;
-    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3);
+    // Kılıç çekme sesi (metal sliding)
+    const bufSize1 = ctx.sampleRate * 0.15;
+    const buf1 = ctx.createBuffer(1, bufSize1, ctx.sampleRate);
+    const d1 = buf1.getChannelData(0);
+    for (let i = 0; i < bufSize1; i++) {
+        const t = i / ctx.sampleRate;
+        d1[i] = Math.sin(2 * Math.PI * (3000 + t * 8000) * t) * Math.exp(-t * 15) * 0.3;
     }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buf;
-    const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.15, now);
-    ng.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-    noise.connect(ng);
-    ng.connect(ctx.destination);
-    noise.start(now);
-    noise.stop(now + 0.3);
+    const n1 = ctx.createBufferSource();
+    n1.buffer = buf1;
+    n1.connect(ctx.destination);
+    n1.start(now);
+    
+    // "DE" hecesi - güçlü, derin
+    const o1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    o1.type = 'sawtooth';
+    o1.frequency.setValueAtTime(180, now + 0.08);
+    o1.frequency.linearRampToValueAtTime(220, now + 0.14);
+    g1.gain.setValueAtTime(0, now);
+    g1.gain.linearRampToValueAtTime(0.35, now + 0.09);
+    g1.gain.linearRampToValueAtTime(0.25, now + 0.15);
+    g1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    o1.connect(g1);
+    g1.connect(ctx.destination);
+    o1.start(now + 0.08);
+    o1.stop(now + 0.2);
+    
+    // "MA" hecesi - orta frekans
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.type = 'sawtooth';
+    o2.frequency.setValueAtTime(240, now + 0.17);
+    o2.frequency.linearRampToValueAtTime(280, now + 0.23);
+    g2.gain.setValueAtTime(0, now);
+    g2.gain.linearRampToValueAtTime(0.3, now + 0.18);
+    g2.gain.linearRampToValueAtTime(0.25, now + 0.25);
+    g2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    o2.connect(g2);
+    g2.connect(ctx.destination);
+    o2.start(now + 0.17);
+    o2.stop(now + 0.3);
+    
+    // "Cİİİ" hecesi - uzun, yükselen, güçlü bitiş
+    const o3 = ctx.createOscillator();
+    const g3 = ctx.createGain();
+    o3.type = 'sawtooth';
+    o3.frequency.setValueAtTime(300, now + 0.28);
+    o3.frequency.linearRampToValueAtTime(450, now + 0.55);
+    g3.gain.setValueAtTime(0, now);
+    g3.gain.linearRampToValueAtTime(0.35, now + 0.29);
+    g3.gain.setValueAtTime(0.35, now + 0.45);
+    g3.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+    o3.connect(g3);
+    g3.connect(ctx.destination);
+    o3.start(now + 0.28);
+    o3.stop(now + 0.65);
+    
+    // Kılıç darbesi (ortada)
+    const bufSize2 = ctx.sampleRate * 0.2;
+    const buf2 = ctx.createBuffer(1, bufSize2, ctx.sampleRate);
+    const d2 = buf2.getChannelData(0);
+    for (let i = 0; i < bufSize2; i++) {
+        d2[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.03)) * 0.4;
+    }
+    const n2 = ctx.createBufferSource();
+    n2.buffer = buf2;
+    const gNoise = ctx.createGain();
+    gNoise.gain.setValueAtTime(0.3, now + 0.15);
+    gNoise.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    n2.connect(gNoise);
+    gNoise.connect(ctx.destination);
+    n2.start(now + 0.15);
+    
+    // Derin resonance (LoL efekti)
+    const o4 = ctx.createOscillator();
+    const g4 = ctx.createGain();
+    o4.type = 'sine';
+    o4.frequency.setValueAtTime(100, now);
+    o4.frequency.exponentialRampToValueAtTime(60, now + 0.7);
+    g4.gain.setValueAtTime(0.15, now);
+    g4.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+    o4.connect(g4);
+    g4.connect(ctx.destination);
+    o4.start(now);
+    o4.stop(now + 0.7);
 }
 
 // Default (fireball) sesi - patlama
@@ -2724,7 +2926,13 @@ function playFireballSound() {
     n.stop(now + 0.25);
 }
 
-// ========== BAŞLAT ==========
+// ========== GÜNCELLENMİŞ OYUN BAŞLANGICI ==========
+// İlk yüklemede karakter seçimi ekranını göster
+if (showCharSelect) {
+    document.getElementById('onlineModal').classList.remove('active');
+    renderCharSelectScreen();
+}
+
 // Enter tuşu ile online modal'dan hızlı başlatma
 document.getElementById('userNameInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); initGame(); }
