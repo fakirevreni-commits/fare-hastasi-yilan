@@ -2026,6 +2026,7 @@ function useAbility() {
 }
 
 function useFireballAbility(cell) {
+    playFireballSound();
     const lostR = cell.radius * 0.35;
     cell.radius -= lostR;
     if (cell.radius < 8) cell.radius = 8;
@@ -2050,6 +2051,7 @@ function useFireballAbility(cell) {
 }
 
 function useGarenAbility(cell) {
+    playGarenSound();
     // Adalet Darbesi - etraftaki tüm botlara hasar
     abilityCooldown = 8;
     for (const bot of bots) {
@@ -2074,6 +2076,7 @@ function useGarenAbility(cell) {
 }
 
 function useChogathAbility(cell) {
+    playChogathSound();
     // Yut - canı az olan botları ye
     abilityCooldown = 10;
     let ate = false;
@@ -2103,6 +2106,7 @@ function useChogathAbility(cell) {
 }
 
 function useOctaneAbility(cell) {
+    playOctaneSound();
     // Adrenalin - %15 can harca, 3sn hızlan
     const cost = cell.radius * 0.15;
     if (cell.radius - cost < 6) { showNotification('❌ Canın çok düşük!'); return; }
@@ -2320,21 +2324,69 @@ function initMusicYTPlayer() {
     });
 }
 
+let adPlaying = false;
+let adCheckInterval = null;
+
 function onYTReady(e) {
     // Player hazır
 }
 
 function onYTStateChange(e) {
-    if (e.data === YT.PlayerState.ENDED) {
+    const state = e.data;
+    const np = document.getElementById('nowPlaying');
+    
+    if (state === YT.PlayerState.ENDED) {
         playNextSong();
     }
-    if (e.data === YT.PlayerState.PLAYING) {
+    if (state === YT.PlayerState.PLAYING) {
         musicPlaying = true;
         updatePlayPauseBtn();
+        // Reklam kontrolü: süre 0 veya çok kısaysa reklam olabilir
+        startAdCheck();
     }
-    if (e.data === YT.PlayerState.PAUSED) {
+    if (state === YT.PlayerState.PAUSED) {
         musicPlaying = false;
         updatePlayPauseBtn();
+    }
+    if (state === YT.PlayerState.BUFFERING) {
+        // Buffering sırasında da kontrol et
+    }
+}
+
+function startAdCheck() {
+    if (adCheckInterval) clearInterval(adCheckInterval);
+    adCheckInterval = setInterval(() => {
+        if (!musicYTPlayer || !musicPlaying) { clearInterval(adCheckInterval); return; }
+        try {
+            const duration = musicYTPlayer.getDuration();
+            const url = musicYTPlayer.getVideoUrl() || '';
+            // YouTube reklam videosu URL'de farklılık gösterir
+            // Ayrıca reklam oynatılırken getDuration() 0 döner
+            const isAd = (duration === 0 || duration < 3) && musicYTPlayer.getPlayerState() === YT.PlayerState.PLAYING;
+            
+            if (isAd && !adPlaying) {
+                adPlaying = true;
+                musicYTPlayer.mute();
+                showAdBanner(true);
+            } else if (!isAd && adPlaying) {
+                adPlaying = false;
+                musicYTPlayer.unMute();
+                showAdBanner(false);
+            }
+        } catch(ex) {}
+    }, 500);
+}
+
+function showAdBanner(show) {
+    const np = document.getElementById('nowPlaying');
+    const songs = MUSIC_CATEGORIES[activeMusicCat] || [];
+    const song = songs[currentSongIdx];
+    if (show) {
+        np.innerHTML = `<span style="color:#f6d365">⏳ Reklam bekleniyor... Ses kısılı</span>`;
+    } else {
+        if (song) {
+            np.innerHTML = `<span class="np-title">${song.title}</span> - ${song.artist}`;
+        }
     }
 }
 
@@ -2445,6 +2497,232 @@ document.getElementById('btnCloseMusic').addEventListener('click', () => {
 });
 
 loadYouTubeAPI();
+
+// ========== KARAKTER YETENEK SESLERİ (Web Audio API) ==========
+let sfxCtx = null;
+
+function getSfxCtx() {
+    if (!sfxCtx) {
+        sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (sfxCtx.state === 'suspended') sfxCtx.resume();
+    return sfxCtx;
+}
+
+// Octane Stim sesi - elektronik vızz + iğne sesi
+function playOctaneSound() {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+    
+    // Ana vızıltı
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+    
+    // İğne enjeksiyon tını
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(3000, now);
+    osc2.frequency.exponentialRampToValueAtTime(1500, now + 0.08);
+    gain2.gain.setValueAtTime(0.15, now);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.1);
+    
+    // Hızlanma whoosh
+    const bufSize = ctx.sampleRate * 0.3;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const noiseGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2000, now);
+    filter.frequency.exponentialRampToValueAtTime(6000, now + 0.15);
+    filter.Q.value = 2;
+    noiseGain.gain.setValueAtTime(0.15, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.3);
+}
+
+// Cho'Gath yeme sesi - derin çiğneme + yutma
+function playChogathSound() {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+    
+    // Derin çiğneme
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+    
+    // Crunch sesi
+    const bufSize = ctx.sampleRate * 0.4;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const noiseGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(300, now + 0.3);
+    noiseGain.gain.setValueAtTime(0.25, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.4);
+    
+    // Yutma sesi (gluk)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(200, now + 0.25);
+    osc2.frequency.exponentialRampToValueAtTime(80, now + 0.45);
+    gain2.gain.setValueAtTime(0, now);
+    gain2.gain.setValueAtTime(0.2, now + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.25);
+    osc2.stop(now + 0.5);
+}
+
+// Garen Demacia sesi - kılıç darbesi + "DEMACIA!"
+function playGarenSound() {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+    
+    // Kılıç slaytı
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.2);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.25);
+    
+    // Metal tınısı
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(2000, now);
+    osc2.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+    gain2.gain.setValueAtTime(0.12, now);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.2);
+    
+    // "DE-MA-CIA" heceleri (3 tonlu)
+    const syllables = [0, 0.1, 0.2];
+    const freqs = [500, 650, 800];
+    syllables.forEach((delay, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(freqs[i], now + delay);
+        o.frequency.exponentialRampToValueAtTime(freqs[i] * 0.8, now + delay + 0.08);
+        g.gain.setValueAtTime(0, now);
+        g.gain.setValueAtTime(0.2, now + delay);
+        g.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(now + delay);
+        o.stop(now + delay + 0.1);
+    });
+    
+    // Patlama efekti
+    const bufSize = ctx.sampleRate * 0.3;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.15, now);
+    ng.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    noise.connect(ng);
+    ng.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.3);
+}
+
+// Default (fireball) sesi - patlama
+function playFireballSound() {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+    
+    const bufSize = ctx.sampleRate * 0.25;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+    }
+    const n = ctx.createBufferSource();
+    n.buffer = buf;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.2, now);
+    ng.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    n.connect(ng);
+    ng.connect(ctx.destination);
+    n.start(now);
+    n.stop(now + 0.25);
+}
 
 // ========== BAŞLAT ==========
 // Enter tuşu ile online modal'dan hızlı başlatma
