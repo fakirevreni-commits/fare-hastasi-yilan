@@ -2692,41 +2692,41 @@ function playEatSound() {
     if (now - lastEatTime < 0.08) return;
     lastEatTime = now;
     
-    // Pop - kısa tiz sine sweep
+    // Yumuşak yapışma - lowpassfiltered sine (çok kısık)
     const osc = ctx.createOscillator();
     const oscG = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(900 + Math.random() * 200, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.06);
-    oscG.gain.setValueAtTime(0.2, now);
-    oscG.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+    osc.frequency.setValueAtTime(220 + Math.random() * 40, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+    oscG.gain.setValueAtTime(0.04, now);
+    oscG.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
     osc.connect(oscG);
     oscG.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.07);
+    osc.stop(now + 0.1);
     
-    // Gulp - kısa gürültü patlaması
-    const bufSize = ctx.sampleRate * 0.05;
+    // Yumuşak gürültü - lowpass ile sislendirilmiş (yapışma hissi)
+    const bufSize = ctx.sampleRate * 0.06;
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < bufSize; i++) {
         const t = i / ctx.sampleRate;
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 60);
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 40);
     }
     const n = ctx.createBufferSource();
     n.buffer = buf;
     const f = ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = 4000;
-    f.Q.value = 0.5;
+    f.type = 'lowpass';
+    f.frequency.value = 600;
+    f.Q.value = 1;
     const ng2 = ctx.createGain();
-    ng2.gain.setValueAtTime(0.12, now);
-    ng2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    ng2.gain.setValueAtTime(0.03, now);
+    ng2.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
     n.connect(f);
     f.connect(ng2);
     ng2.connect(ctx.destination);
     n.start(now);
-    n.stop(now + 0.05);
+    n.stop(now + 0.06);
 }
 
 // Cho'Gath yeme sesi - derin çiğneme + yutma
