@@ -1315,6 +1315,7 @@ function updateGame() {
             const f = foods[i];
             if (Math.sqrt((piece.x-f.x)**2+(piece.y-f.y)**2) < piece.radius) {
                 piece.radius += Math.max(0.3, f.radius * 0.12);
+                playEatSound();
                 // Yeme efekti
                 if (Math.random() < 0.15) {
                     for (let j = 0; j < 2; j++) {
@@ -1412,6 +1413,7 @@ function updateGame() {
                 piece.radius += growth;
                 bot.alive = false;
                 kills++;
+                playEatSound();
                 createParticles(bot.x,bot.y,bot.color,15);
                 setTimeout(() => { if (!bot.alive) { const nb = new Cell(Math.random()*WORLD_SIZE,Math.random()*WORLD_SIZE,15+Math.random()*18); nb.name = TURKISH_NAMES[Math.floor(Math.random()*TURKISH_NAMES.length)]; nb.skin = ['default','glow','naruto'][Math.floor(Math.random()*3)]; bots.push(nb); } }, 5000);
             }
@@ -2605,55 +2607,125 @@ function playOctaneSound() {
     const ctx = getSfxCtx();
     const now = ctx.currentTime;
     
-    // Ana vızıltı
+    // 1) Keskin iğne tssss - enjeksiyon hissi (8kHz bandpass noise burst)
+    const nb = ctx.createBuffer(1, ctx.sampleRate * 0.07, ctx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) {
+        const t = i / ctx.sampleRate;
+        nd[i] = (Math.random() * 2 - 1) * Math.exp(-t * 60);
+    }
+    const ns = ctx.createBufferSource();
+    ns.buffer = nb;
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass';
+    nf.frequency.value = 8000;
+    nf.Q.value = 1.5;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.35, now);
+    ng.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+    ns.connect(nf);
+    nf.connect(ng);
+    ng.connect(ctx.destination);
+    ns.start(now);
+
+    // 2) Sıvı enjeksiyon - şırınga basma (sine sweep down)
+    const inj = ctx.createOscillator();
+    const injG = ctx.createGain();
+    inj.type = 'sine';
+    inj.frequency.setValueAtTime(5000, now);
+    inj.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+    injG.gain.setValueAtTime(0.2, now);
+    injG.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    inj.connect(injG);
+    injG.connect(ctx.destination);
+    inj.start(now);
+    inj.stop(now + 0.1);
+
+    // 3) Elektronik buzz - kimyasal stim (square wave tremolo)
+    const buzz = ctx.createOscillator();
+    const buzzG = ctx.createGain();
+    buzz.type = 'square';
+    buzz.frequency.setValueAtTime(220, now + 0.04);
+    buzz.frequency.setValueAtTime(440, now + 0.08);
+    buzz.frequency.setValueAtTime(220, now + 0.15);
+    buzzG.gain.setValueAtTime(0, now);
+    buzzG.gain.setValueAtTime(0.1, now + 0.04);
+    buzzG.gain.setValueAtTime(0.07, now + 0.15);
+    buzzG.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    buzz.connect(buzzG);
+    buzzG.connect(ctx.destination);
+    buzz.start(now + 0.04);
+    buzz.stop(now + 0.35);
+
+    // 4) Hızlanma whoosh - şırınga sonrası patlama
+    const wb = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate);
+    const wd = wb.getChannelData(0);
+    for (let i = 0; i < wd.length; i++) {
+        const t = i / ctx.sampleRate;
+        wd[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * t / 0.35);
+    }
+    const ws = ctx.createBufferSource();
+    ws.buffer = wb;
+    const wf = ctx.createBiquadFilter();
+    wf.type = 'bandpass';
+    wf.frequency.setValueAtTime(1500, now + 0.04);
+    wf.frequency.exponentialRampToValueAtTime(5000, now + 0.15);
+    wf.frequency.exponentialRampToValueAtTime(2000, now + 0.35);
+    wf.Q.value = 1;
+    const wg = ctx.createGain();
+    wg.gain.setValueAtTime(0, now);
+    wg.gain.setValueAtTime(0.18, now + 0.04);
+    wg.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    ws.connect(wf);
+    wf.connect(wg);
+    wg.connect(ctx.destination);
+    ws.start(now + 0.04);
+    ws.stop(now + 0.35);
+}
+
+// Yeme sesi - tatlı "pop" + hafif "gulp" (spam engelli)
+let lastEatTime = 0;
+function playEatSound() {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+    if (now - lastEatTime < 0.08) return;
+    lastEatTime = now;
+    
+    // Pop - kısa tiz sine sweep
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    const oscG = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(900 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.06);
+    oscG.gain.setValueAtTime(0.2, now);
+    oscG.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+    osc.connect(oscG);
+    oscG.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.35);
+    osc.stop(now + 0.07);
     
-    // İğne enjeksiyon tını
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(3000, now);
-    osc2.frequency.exponentialRampToValueAtTime(1500, now + 0.08);
-    gain2.gain.setValueAtTime(0.15, now);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + 0.1);
-    
-    // Hızlanma whoosh
-    const bufSize = ctx.sampleRate * 0.3;
+    // Gulp - kısa gürültü patlaması
+    const bufSize = ctx.sampleRate * 0.05;
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < bufSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+        const t = i / ctx.sampleRate;
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 60);
     }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buf;
-    const noiseGain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(2000, now);
-    filter.frequency.exponentialRampToValueAtTime(6000, now + 0.15);
-    filter.Q.value = 2;
-    noiseGain.gain.setValueAtTime(0.15, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start(now);
-    noise.stop(now + 0.3);
+    const n = ctx.createBufferSource();
+    n.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 4000;
+    f.Q.value = 0.5;
+    const ng2 = ctx.createGain();
+    ng2.gain.setValueAtTime(0.12, now);
+    ng2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    n.connect(f);
+    f.connect(ng2);
+    ng2.connect(ctx.destination);
+    n.start(now);
+    n.stop(now + 0.05);
 }
 
 // Cho'Gath yeme sesi - derin çiğneme + yutma
