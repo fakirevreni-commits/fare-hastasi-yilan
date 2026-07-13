@@ -2218,7 +2218,8 @@ document.getElementById('btnPlayOffline').addEventListener('click', () => {
     document.getElementById('onlineModal').classList.remove('active');
     document.getElementById('statusBadge').textContent = '💻 Tek Oyunculu';
     document.getElementById('statusBadge').classList.remove('online');
-    initGame();
+    showCharSelect = true;
+    renderCharSelectScreen();
 });
  
 // Canvas click (empty - audio removed)
