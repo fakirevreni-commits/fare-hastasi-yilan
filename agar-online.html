@@ -675,41 +675,33 @@ class Cell {
             if (t < 0.3) {
                 ctx.save();
                 const ringR = this.radius * (1 + (0.3 - t) * 4);
-                ctx.strokeStyle = `rgba(255,255,255,${0.4 * (1 - t / 0.3)})`;
+                ctx.strokeStyle = 'rgba(255,255,255,' + (0.4 * (1 - t / 0.3)) + ')';
                 ctx.lineWidth = 2 + (0.3 - t) * 10;
                 ctx.beginPath(); ctx.arc(sx, sy, ringR, 0, Math.PI * 2); ctx.stroke();
                 ctx.restore();
             }
-            if (this.splitScale >= 0.99) {
-                delete this.splitScale;
-            }
+            if (this.splitScale >= 0.99) delete this.splitScale;
         }
+
         ctx.save();
-        if (scaleAnim !== 1) {
+        if (scaleAnim < 1) {
             ctx.translate(sx, sy);
             ctx.scale(scaleAnim, scaleAnim);
             ctx.translate(-sx, -sy);
         }
 
-        // Glow
         if (sk === 'glow') {
-            ctx.save();
             const g = ctx.createRadialGradient(sx,sy,0,sx,sy,this.radius*1.8);
             g.addColorStop(0,'rgba(246,211,101,0.12)'); g.addColorStop(1,'transparent');
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.arc(sx,sy,this.radius*1.8,0,Math.PI*2); ctx.fill();
-            ctx.restore();
         } else if (sk === 'naruto') {
-            ctx.save();
             const g = ctx.createRadialGradient(sx,sy,0,sx,sy,this.radius*1.8);
             g.addColorStop(0,'rgba(255,107,53,0.12)'); g.addColorStop(1,'transparent');
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.arc(sx,sy,this.radius*1.8,0,Math.PI*2); ctx.fill();
-            ctx.restore();
         }
 
-        ctx.save();
-        // Fill
         if (sk === 'glow') {
             const g = ctx.createRadialGradient(sx-this.radius*0.2,sy-this.radius*0.2,0,sx,sy,this.radius);
             g.addColorStop(0,'#fff8e1'); g.addColorStop(0.4,'#f6d365'); g.addColorStop(0.8,'#fda085'); g.addColorStop(1,'#f97316');
@@ -726,10 +718,9 @@ class Cell {
         ctx.lineWidth = Math.max(2, this.radius*0.04);
         ctx.stroke();
 
-        // Naruto özel
         if (sk === 'naruto' && this.radius > 15) {
             ctx.fillStyle = 'rgba(255,255,255,0.12)';
-            ctx.font = `${Math.max(10, this.radius*0.5)}px serif`;
+            ctx.font = Math.max(10, this.radius*0.5) + 'px serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('🍥', sx, sy - this.radius*0.05);
             for (let i = 0; i < 3; i++) {
@@ -740,24 +731,22 @@ class Cell {
             }
             if (this.radius > 25) {
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.font = `bold ${Math.max(7, this.radius*0.2)}px sans-serif`;
+                ctx.font = 'bold ' + Math.max(7, this.radius*0.2) + 'px sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText('NARUTO', sx, sy + this.radius*0.45);
             }
         }
 
-        // Glow özel
         if (sk === 'glow') {
             for (let i = 0; i < 4; i++) {
                 const a = totalFrames*0.03 + i*1.57;
                 const r = this.radius * (0.5 + Math.sin(totalFrames*0.04+i)*0.3);
-                ctx.fillStyle = `rgba(255,255,255,${0.2+Math.sin(totalFrames*0.06+i)*0.15})`;
+                ctx.fillStyle = 'rgba(255,255,255,' + (0.2+Math.sin(totalFrames*0.06+i)*0.15) + ')';
                 ctx.beginPath(); ctx.arc(sx+Math.cos(a)*r, sy+Math.sin(a)*r, 1.5+Math.sin(totalFrames*0.08+i), 0, Math.PI*2);
                 ctx.fill();
             }
         }
 
-        // Fotoğraf - kusursuz yuvarlak (imlecin tamamını kaplar)
         if (this.isPlayer && userImageLoaded && userImage && this.radius > 10) {
             const pr = this.radius;
             ctx.save();
@@ -776,15 +765,14 @@ class Cell {
             ctx.restore();
         }
 
-        // İsim
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${Math.max(9, this.radius*0.3)}px sans-serif`;
+        ctx.font = 'bold ' + Math.max(9, this.radius*0.3) + 'px sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 4;
         ctx.fillText(this.name, sx, sy);
         ctx.shadowBlur = 0;
+
         ctx.restore();
-        if (scaleAnim !== 1) ctx.restore();
     }
 }
 
