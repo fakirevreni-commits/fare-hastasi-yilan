@@ -384,6 +384,99 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        /* ===== MOBİL JOYSTICK & KONTROLLER ===== */
+        #mobileControls { display: none; }
+        .is-mobile #mobileControls { display: block; }
+        .is-mobile #bottomBar { display: none !important; }
+        .is-mobile #staminaBar { bottom: 140px; }
+        .is-mobile #eCooldownBar { bottom: 132px; }
+        .is-mobile #mergeCooldownBar { bottom: 122px; }
+        .is-mobile #scoreTop { top: 10px; left: 10px; }
+        .is-mobile #scoreTop .sc { font-size: 1.4rem; }
+        .is-mobile #scoreTop .stat-row span { font-size: 0.7rem; }
+        .is-mobile #lbPanel {
+            top: auto; bottom: 10px; right: 10px;
+            min-width: 110px; max-width: 130px;
+            padding: 6px 8px; font-size: 0.6rem;
+            max-height: 120px; overflow-y: auto;
+        }
+        .is-mobile #lbPanel h3 { font-size: 0.6rem; margin-bottom: 3px; }
+        .is-mobile .lb-e { font-size: 0.55rem; padding: 1px 0; }
+        .is-mobile .hint { display: none; }
+        .is-mobile .status-badge { top: 10px; right: 10px; font-size: 0.6rem; padding: 3px 8px; }
+
+        #joystickArea {
+            position: fixed;
+            bottom: 20px; left: 20px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(78,205,196,0.08);
+            border: 2px solid rgba(78,205,196,0.2);
+            z-index: 50;
+            touch-action: none;
+        }
+        #joystickThumb {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 44px; height: 44px;
+            margin: -22px 0 0 -22px;
+            border-radius: 50%;
+            background: rgba(78,205,196,0.35);
+            border: 2px solid rgba(78,205,196,0.5);
+            pointer-events: none;
+        }
+
+        #mobileBtns {
+            position: fixed;
+            bottom: 20px; right: 15px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 50;
+        }
+        .mob-btn {
+            width: 54px; height: 54px;
+            border-radius: 50%;
+            border: 2px solid rgba(78,205,196,0.3);
+            background: rgba(10,10,26,0.7);
+            color: #e2e8f0;
+            font-size: 0.6rem;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            touch-action: none;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            cursor: pointer;
+            line-height: 1;
+        }
+        .mob-btn .icon { font-size: 1.2rem; margin-bottom: 1px; }
+        .mob-btn:active { background: rgba(78,205,196,0.3); }
+        .mob-btn.ability-btn { border-color: rgba(255,107,53,0.4); }
+        .mob-btn.ability-btn:active { background: rgba(255,107,53,0.3); }
+        .mob-btn.split-btn { border-color: rgba(168,85,247,0.4); }
+        .mob-btn.split-btn:active { background: rgba(168,85,247,0.3); }
+        .mob-btn.sprint-btn { border-color: rgba(246,211,101,0.4); }
+        .mob-btn.sprint-btn:active { background: rgba(246,211,101,0.3); }
+
+        #mobileBtnRow {
+            position: fixed;
+            bottom: 90px; right: 15px;
+            display: flex; gap: 8px;
+            z-index: 50;
+        }
+        .mob-btn-sm {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 2px solid rgba(78,205,196,0.2);
+            background: rgba(10,10,26,0.6);
+            color: #e2e8f0;
+            font-size: 0.5rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            touch-action: none;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .mob-btn-sm .icon { font-size: 0.9rem; }
+        .mob-btn-sm:active { background: rgba(78,205,196,0.3); }
     </style>
 </head>
 <body>
@@ -452,6 +545,21 @@
 
 <!-- YouTube Player -->
 <div id="youtubePlayer"></div>
+
+<!-- Mobil Kontroller -->
+<div id="mobileControls">
+    <div id="joystickArea">
+        <div id="joystickThumb"></div>
+    </div>
+    <div id="mobileBtnRow">
+        <div class="mob-btn-sm" id="mobSprint"><span class="icon">🏃</span></div>
+        <div class="mob-btn-sm" id="mobMerge"><span class="icon">🌀</span></div>
+    </div>
+    <div id="mobileBtns">
+        <div class="mob-btn ability-btn" id="mobAbility"><span class="icon">🔥</span>E</div>
+        <div class="mob-btn split-btn" id="mobSplit"><span class="icon">⚡</span>BÖL</div>
+    </div>
+</div>
 
 <div id="gameOverBanner">
     <h2>💀 YOK EDİLDİN</h2>
@@ -2927,6 +3035,97 @@ document.querySelectorAll('#startScreen .sk-btn').forEach(function(el) {
         skinName = el.getAttribute('data-skin');
     });
 });
+
+// ========== MOBİL DESTEK ==========
+var isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if (isMobile) document.body.classList.add('is-mobile');
+
+// Joystick
+var joystickArea = document.getElementById('joystickArea');
+var joystickThumb = document.getElementById('joystickThumb');
+var joystickActive = false;
+var joystickDX = 0, joystickDY = 0;
+var joystickRadius = 50;
+
+if (joystickArea) {
+    joystickArea.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        joystickActive = true;
+        handleJoystick(e);
+    }, {passive: false});
+    joystickArea.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        handleJoystick(e);
+    }, {passive: false});
+    joystickArea.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        joystickActive = false;
+        joystickDX = 0;
+        joystickDY = 0;
+        joystickThumb.style.transform = 'translate(0px, 0px)';
+    }, {passive: false});
+}
+
+function handleJoystick(e) {
+    if (!joystickActive) return;
+    var touch = e.touches[0];
+    var rect = joystickArea.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dx = touch.clientX - cx;
+    var dy = touch.clientY - cy;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > joystickRadius) {
+        dx = (dx / dist) * joystickRadius;
+        dy = (dy / dist) * joystickRadius;
+        dist = joystickRadius;
+    }
+    joystickDX = dx / joystickRadius;
+    joystickDY = dy / joystickRadius;
+    joystickThumb.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+}
+
+// Mobil butonlar
+var mobSprintHeld = false;
+
+document.getElementById('mobAbility').addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    useAbility();
+}, {passive: false});
+
+document.getElementById('mobSplit').addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    splitPlayer();
+}, {passive: false});
+
+document.getElementById('mobSprint').addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    mobSprintHeld = true;
+    shiftHeld = true;
+    this.style.background = 'rgba(246,211,101,0.3)';
+}, {passive: false});
+
+document.getElementById('mobSprint').addEventListener('touchend', function(e) {
+    e.preventDefault();
+    mobSprintHeld = false;
+    shiftHeld = false;
+    this.style.background = '';
+}, {passive: false});
+
+document.getElementById('mobMerge').addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    mergeAllPieces();
+}, {passive: false});
+
+// Mobilde joystick hareketini updateGame'e entegre et
+var origUpdateGame = updateGame;
+updateGame = function() {
+    if (isMobile && joystickActive && (joystickDX !== 0 || joystickDY !== 0)) {
+        mouseX = W / 2 + joystickDX * 200;
+        mouseY = H / 2 + joystickDY * 200;
+    }
+    origUpdateGame();
+};
 
 // Oyunu başlatma - sadece gameLoop'u çalıştır (boş tuval)
 gameLoop();
