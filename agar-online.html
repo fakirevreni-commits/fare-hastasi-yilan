@@ -1908,8 +1908,10 @@ function draw() {
 }
 
 function gameLoop() {
-    updateGame();
-    draw();
+    if (!showCharSelect) {
+        updateGame();
+        draw();
+    }
     requestAnimationFrame(gameLoop);
 }
 
@@ -2928,15 +2930,9 @@ function playFireballSound() {
 }
 
 // ========== GÜNCELLENMİŞ OYUN BAŞLANGICI ==========
-// İlk yüklemede karakter seçimi ekranını göster
-if (showCharSelect) {
-    document.getElementById('onlineModal').classList.remove('active');
-    renderCharSelectScreen();
-}
-
 // Enter tuşu ile online modal'dan hızlı başlatma
 document.getElementById('userNameInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); initGame(); }
+    if (e.key === 'Enter') { userName = e.target.value.trim() || 'Oyuncu'; document.getElementById('onlineModal').classList.remove('active'); showCharSelect = true; renderCharSelectScreen(); }
 });
 document.getElementById('roomCodeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') joinRoom();
@@ -2949,7 +2945,9 @@ document.getElementById('userNameInput').value = userName;
 // Kayıtlı ilerlemeyi yükle
 loadProgress();
 
-initGame();
+// Karakter seçimi ekranını göster (oyunu başlatma)
+document.getElementById('onlineModal').classList.remove('active');
+renderCharSelectScreen();
 gameLoop();
 </script>
 </body>
