@@ -1220,8 +1220,12 @@ function updateGame() {
     const mainPiece = playerPieces.reduce((a,b) => (!a.alive || (b.alive && b.radius > a.radius)) ? b : a, playerPieces[0]);
     camera.x = mainPiece.x - W/2;
     camera.y = mainPiece.y - H/2;
-    const targetZoom = Math.max(0.3, Math.min(1, 70 / (mainPiece.radius + 30)));
-    cameraZoom += (targetZoom - cameraZoom) * 0.08;
+    // agar.io zoom formülü
+    let totalSize = 0;
+    for (const p of playerPieces) if (p.alive) totalSize += p.radius;
+    if (totalSize < 70) totalSize = 70;
+    const targetZoom = Math.pow(Math.min(64 / totalSize, 1), 0.4) * Math.max(H / 965, W / 1920);
+    cameraZoom = (9 * cameraZoom + targetZoom) / 10;
 
     // Yiyecek yeme (tüm parçalar) - büyütür ve skor artar
     for (const piece of playerPieces) {
